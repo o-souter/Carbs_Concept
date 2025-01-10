@@ -28,7 +28,12 @@ import androidx.camera.view.PreviewView;
 import org.opencv.android.OpenCVLoader;
 import org.opencv.core.Mat;
 import org.opencv.imgcodecs.Imgcodecs;
+import org.opencv.imgproc.Imgproc;
 import org.opencv.objdetect.ArucoDetector;
+import org.opencv.objdetect.Dictionary;
+import org.opencv.objdetect.Objdetect;
+import org.opencv.objdetect.DetectorParameters;
+
 
 import android.Manifest;
 public class MainActivity extends AppCompatActivity {
@@ -114,18 +119,27 @@ public class MainActivity extends AppCompatActivity {
         //Load image with OpenCV
         Mat image = Imgcodecs.imread(imagePath);
 
-        //Set up ARUco detector
-        ArucoDetector arucoDetector = new ArucoDetector();
+        Mat preprocessedImage = new Mat();
+        //Convert to greyscale
+        Imgproc.cvtColor(image, preprocessedImage, Imgproc.COLOR_BGR2GRAY);
+
+        //Set up ARUco detector for precise aruco marker to detect
+        Dictionary dictionary = Objdetect.getPredefinedDictionary(Objdetect.DICT_4X4_50);
+
+
+        //Parameters
+        DetectorParameters params = new DetectorParameters();
+
+        ArucoDetector arucoDetector = new ArucoDetector(dictionary, params);
 
         // Create Mat objects for marker corners and IDs
         List<Mat> markerCorners = new ArrayList<>();
         Mat markerIds = new Mat();
 
         //Detect markers
-        arucoDetector.detectMarkers(image, markerCorners, markerIds);
+        arucoDetector.detectMarkers(preprocessedImage, markerCorners, markerIds);
 
         if (!markerIds.empty()) {
-            Log.d("ARUco", "Markers detected: " + markerIds.dump());
             Log.d("ARUco", "Markers detected: " + markerIds.dump());
             calculateScale(markerCorners);
         }
@@ -135,6 +149,9 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void calculateScale(List<Mat> markerCorners) {
-        Log.d("ARUco", "Not implemented yet.");
+        //Calculate the scale using the corners of the aruco marker
+//        Mat firstMarker = markerCorners.get(0);
+//
+//        double[] point = firstMarker.get()
     }
 }
