@@ -17,6 +17,7 @@
         app:layout_constraintEnd_toEndOf="parent" >
 
 
+
     </androidx.camera.view.PreviewView>
 
 
@@ -54,13 +55,21 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
-        android:gravity="center"
         android:ellipsize="middle"
-        android:text="No marker detected"
+        android:gravity="center"
+        android:text="Scanning for marker..."
         android:textColor="@android:color/holo_red_dark"
         android:textSize="18sp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
+
+    <TextView
+        android:id="@+id/versionText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="C.A.R.B.S v0.0"
+        app:layout_constraintBottom_toBottomOf="@+id/captureButton"
+        app:layout_constraintStart_toStartOf="@+id/previewView" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

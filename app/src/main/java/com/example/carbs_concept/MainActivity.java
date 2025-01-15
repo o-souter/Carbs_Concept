@@ -32,6 +32,7 @@ import androidx.camera.core.ImageCapture;
 import androidx.camera.view.PreviewView;
 
 //OpenCV
+import org.opencv.BuildConfig;
 import org.opencv.android.OpenCVLoader;
 import org.opencv.android.Utils;
 import org.opencv.core.Core;
@@ -49,7 +50,7 @@ import org.opencv.objdetect.Dictionary;
 import org.opencv.objdetect.Objdetect;
 import org.opencv.objdetect.DetectorParameters;
 
-
+//import com.example.carbs_concept.
 import android.Manifest;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -62,6 +63,7 @@ public class MainActivity extends AppCompatActivity {
     private Button captureButton;
     private ArucoDetector arucoDetector;
     private TextView detectionFeedback;
+    private OverlayView overlayView;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -74,13 +76,19 @@ public class MainActivity extends AppCompatActivity {
             Log.d("OpenCV", "OpenCV initialized successfully.");
         }
 
+        //Set up versioning
+        String versionName = com.example.carbs_concept.BuildConfig.APP_VERSION_NAME;
+        int versionCode = com.example.carbs_concept.BuildConfig.APP_VERSION_CODE;
+
+        TextView versionText = findViewById(R.id.versionText);
+        versionText.setText("C.A.R.B.S v" + versionName + " (" + versionCode + ")");
         //Request permissions
         getPermissions();
 
         //Setup widgets
         previewView = findViewById(R.id.previewView);
         captureButton = findViewById(R.id.captureButton);
-
+        overlayView = findViewById(R.id.overlayView);
         initializeArucoDetector();
         initializeCamera();
 
@@ -209,7 +217,7 @@ public class MainActivity extends AppCompatActivity {
 
                 for (List<Point> corners : cornersList) {
                     for (int i = 0; i < corners.size(); i++) {
-                        corners.set(i, mapToScreenSpace(corners.get(i), imageSize, previewWidth, previewHeight));
+                        corners.set(i, mapToScreenSpace(corners.get(i), imageSize));
                     }
                 }
 
@@ -218,9 +226,10 @@ public class MainActivity extends AppCompatActivity {
                     detectionFeedback.setTextColor(getResources().getColor(android.R.color.holo_green_dark));
                     captureButton.setEnabled(true);
 
-                    OverlayView overlayView = findViewById(R.id.overlayView);
+//                    OverlayView overlayView = findViewById(R.id.overlayView);
                     overlayView.setVisibility(View.VISIBLE);
                     overlayView.setLayoutParams(previewView.getLayoutParams());
+//                    overlayView.setTransformation(0, 1f, 1f);
                     overlayView.setMarkerCorners(cornersList);
                 });
             }
@@ -229,7 +238,7 @@ public class MainActivity extends AppCompatActivity {
                     detectionFeedback.setText("No fiducial marker detected.");
                     detectionFeedback.setTextColor(getResources().getColor(android.R.color.holo_red_light));
                     captureButton.setEnabled(false);
-                    OverlayView overlayView = findViewById(R.id.overlayView);
+//                    OverlayView overlayView = findViewById(R.id.overlayView);
                     overlayView.setVisibility(View.INVISIBLE);
                 });
             }
@@ -244,22 +253,45 @@ public class MainActivity extends AppCompatActivity {
             imageProxy.close();
         }
     }
-    private Point mapToScreenSpace(Point imagePoint, Size imageSize, int previewWidth, int previewHeight) {
+    private Point mapToScreenSpace(Point imagePoint, Size imageSize) {
+
+        double previewWidth = previewView.getWidth();
+        double previewHeight = previewView.getHeight();
+
         double scaleX = (double) previewWidth / imageSize.width;
         double scaleY = (double) previewHeight / imageSize.height;
 
         // Ensure consistent scaling (maintain aspect ratio)
         double scale = Math.min(scaleX, scaleY);
 
-        // Center content within `previewView`
-        double offsetX = (previewWidth - imageSize.width * scaleX) / 2.0;
-        double offsetY = (previewHeight - imageSize.height * scaleY) / 2.0;
+        // Center content within `previewView`.
+        double offsetX = (previewWidth - imageSize.width * scale) / 2.0;
+        double offsetY = (previewHeight - imageSize.height * scale) / 2.0;
 
+
+        double multiplierX = 1.0;
+        double multiplierY = 1.0;
         // Swap x and y, and invert the swapped x-axis
-        return new Point(
-                (imageSize.height - imagePoint.y) * scale + offsetX,  // Swapped y -> inverted x
-                imagePoint.x * scale + offsetY                       // Swapped x -> y
-        );
+        Log.d("UI", "PreviewView width: "+previewWidth + " PreviewView height: "+previewHeight + " imageSize width: "+imageSize.width + " imageSize height: "+imageSize.height);
+        Log.d("ScalingAndOffset", "scaleX: " + scaleX + ", scaleY: " + scaleY + ", scale: " + scale);
+        Log.d("ScalingAndOffset", "offsetX: " + offsetX + ", offsetY: " + offsetY);
+
+        double previewAspectRatio = (double) previewWidth / previewHeight;
+        double imageAspectRatio = (double) imageSize.width / imageSize.height;
+        Log.d("AspectRatio", "Preview: " + previewAspectRatio + ", Image: " + imageAspectRatio);
+
+
+        double newX = (imageSize.height - imagePoint.y) * scale + offsetX;// Swapped y -> inverted x
+        double newY = imagePoint.x * scale + offsetY; // Swapped x -> y
+
+//        Point newPoint = new Point(imagePoint.x * scale * offsetX, imagePoint.y * scale + offsetY);
+        Point newPoint = new Point(newX*multiplierX, newY*multiplierY);
+//        Log.d("mapToScreenSpace", "Original point: " + imagePoint +" Mapped point: " + newPoint);
+        return newPoint;
+//        return new Point(
+//                (imageSize.height - imagePoint.y) * scale + offsetX,  // Swapped y -> inverted x
+//                imagePoint.x * scale + offsetY                       // Swapped x -> y
+//        );
 
 //
     }
