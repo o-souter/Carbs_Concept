@@ -18,7 +18,7 @@ android {
         targetSdk 34
 //        versionCode gitCommitCount.toInteger()
 //        versionName "0.${gitCommitCount}"
-        buildConfigField "String", "APP_VERSION_NAME", "\"0.${gitCommitCount}\""
+        buildConfigField "String", "APP_VERSION_NAME", "\"0.0.${gitCommitCount}\""
         buildConfigField "int", "APP_VERSION_CODE", "${gitCommitCount}"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"

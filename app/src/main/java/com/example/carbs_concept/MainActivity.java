@@ -3,7 +3,9 @@ package com.example.carbs_concept;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.os.Bundle;
+import android.util.DisplayMetrics;
 import android.util.Log;
+import android.view.ViewTreeObserver;
 import android.widget.Button;
 
 import java.io.File;
@@ -21,6 +23,7 @@ import androidx.camera.core.ImageAnalysis;
 import androidx.camera.core.ImageCaptureException;
 import androidx.camera.core.ImageProxy;
 import androidx.camera.core.Preview;
+import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.graphics.Insets;
@@ -89,8 +92,39 @@ public class MainActivity extends AppCompatActivity {
         previewView = findViewById(R.id.previewView);
         captureButton = findViewById(R.id.captureButton);
         overlayView = findViewById(R.id.overlayView);
+
+        // Wait until the layout pass is complete to get dimensions
+//        previewView.getViewTreeObserver().addOnPreDrawListener(new ViewTreeObserver.OnPreDrawListener() {
+//            @Override
+//            public boolean onPreDraw() {
+//                // Remove the listener to avoid infinite loop
+//                previewView.getViewTreeObserver().removeOnPreDrawListener(this);
+//
+//                // Get the width and height of previewView
+//                int previewWidth = previewView.getWidth();
+//                int previewHeight = previewView.getHeight();
+//
+//                // Log the dimensions
+//                Log.d("Dimensions", "PreviewView width: " + previewWidth + " height: " + previewHeight);
+//
+//                // Set the overlayView to match previewView size
+//                ConstraintLayout.LayoutParams params = new ConstraintLayout.LayoutParams(previewWidth, previewHeight);
+//                overlayView.setLayoutParams(params);
+//
+//                // Optionally, call requestLayout() if necessary
+//                overlayView.requestLayout();
+//                overlayView.invalidate();
+//
+//                return true;  // Continue the draw pass
+//            }
+//        });
+
+
+        Log.d("App", "PreviewView width: " + previewView.getWidth() + " height: " + previewView.getHeight() + " OverlayView height: " + overlayView.getHeight() + " width: " + overlayView.getWidth());
         initializeArucoDetector();
         initializeCamera();
+
+
 
         detectionFeedback = findViewById((R.id.detectionFeedback));
         //Set up the GUI
@@ -164,7 +198,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void analyseFrame(ImageProxy imageProxy) {
         try {
-            Mat frame = imageProxyToMat(imageProxy);
+            Mat frame = rotateMat(imageProxyToMat(imageProxy), 270);
 
             List<Mat> markerCorners = new ArrayList<>();
             Mat markerIds = new Mat();
@@ -191,7 +225,7 @@ public class MainActivity extends AppCompatActivity {
 //            Log.d("Aruco", "Thresholded frame saved at: " + getFilesDir() + "/imageToDetect.jpg");
             //Detect markers in the current frame
             arucoDetector.detectMarkers(imageToDetect, markerCorners, markerIds);
-
+            Objdetect.drawDetectedMarkers(frame, markerCorners, markerIds);
             if (!markerIds.empty()) {
                 List<List<Point>> cornersList = new ArrayList<>();
                 for (int i = 0; i < markerCorners.size(); i++) {
@@ -217,7 +251,7 @@ public class MainActivity extends AppCompatActivity {
 
                 for (List<Point> corners : cornersList) {
                     for (int i = 0; i < corners.size(); i++) {
-                        corners.set(i, mapToScreenSpace(corners.get(i), imageSize));
+//                        corners.set(i, mapToScreenSpace(corners.get(i), imageSize));
                     }
                 }
 
@@ -230,7 +264,22 @@ public class MainActivity extends AppCompatActivity {
                     overlayView.setVisibility(View.VISIBLE);
                     overlayView.setLayoutParams(previewView.getLayoutParams());
 //                    overlayView.setTransformation(0, 1f, 1f);
-                    overlayView.setMarkerCorners(cornersList);
+                    overlayView.setImageScale(imageToDetect.width(), imageToDetect.height());
+//                    List<List<Point>> testMarkerCorners = new ArrayList<>();
+//                    List<Point> marker = new ArrayList<>();
+//                    marker.add(new Point(100, 100));
+//                    marker.add(new Point(200, 100));
+//                    marker.add(new Point(200, 200));
+//                    marker.add(new Point(100, 200));
+//                    testMarkerCorners.add(marker);
+//
+//                    overlayView.updateMarkerCorners(testMarkerCorners);
+                    Bitmap bitmap = Bitmap.createBitmap(frame.cols(), frame.rows(), Bitmap.Config.ARGB_8888);
+                    Utils.matToBitmap(frame, bitmap);
+                    overlayView.setImageScale(imageToDetect.width(), imageToDetect.height(), previewView.getWidth(), previewView.getHeight());
+                    overlayView.setImageBitmap(bitmap);
+
+                    overlayView.updateMarkerCorners(cornersList);
                 });
             }
             else {
@@ -253,8 +302,24 @@ public class MainActivity extends AppCompatActivity {
             imageProxy.close();
         }
     }
-    private Point mapToScreenSpace(Point imagePoint, Size imageSize) {
 
+    private Mat rotateMat(Mat mat, int rotationAngle) {
+        // Get the center of the image
+        Point center = new Point(mat.width() / 2, mat.height() / 2);
+
+        // Create a rotation matrix
+        Mat rotationMatrix = Imgproc.getRotationMatrix2D(center, rotationAngle, 1.0);
+
+        // Create an empty Mat to store the rotated image
+        Mat rotatedMat = new Mat();
+
+        // Apply the rotation
+        Imgproc.warpAffine(mat, rotatedMat, rotationMatrix, mat.size());
+
+        return rotatedMat;
+    }
+    private Point mapToScreenSpace(Point imagePoint, Size imageSize) {
+        //Convert image coordinates - > overlayview coordinates
         double previewWidth = previewView.getWidth();
         double previewHeight = previewView.getHeight();
 
@@ -309,6 +374,8 @@ public class MainActivity extends AppCompatActivity {
 
         Mat rgb = new Mat();
         Imgproc.cvtColor(yuv, rgb, Imgproc.COLOR_YUV2RGB_NV21);
+//        Imgproc.cvtColor(yuv, rgb, Imgproc.COLOR_BGR2RGB);
+
         return rgb;
     }
 
@@ -356,13 +423,14 @@ public class MainActivity extends AppCompatActivity {
 
         //Detect markers
         arucoDetector.detectMarkers(preprocessedImage, markerCorners, markerIds);
-
+        Mat outputImage = image.clone();
+        Objdetect.drawDetectedMarkers(outputImage, markerCorners, markerIds);
         if (!markerIds.empty()) {
-            Log.d("ARUco", "Markers detected: " + markerIds.dump());
-            calculateScale(markerCorners);
+//            Log.d("ARUco", "Markers detected: " + markerIds.dump());
+//            calculateScale(markerCorners);
         }
         else {
-            Log.d("ARUco", "No Markers detected.");
+//            Log.d("ARUco", "No Markers detected.");
         }
     }
 
@@ -370,7 +438,7 @@ public class MainActivity extends AppCompatActivity {
         //Calculate the scale using the corners of the aruco marker
         Mat firstMarker = markerCorners.get(0);
 
-        Log.d("ARUco", "Scale: Rows: "+firstMarker.rows() + " Cols: "+firstMarker.cols());
+//        Log.d("ARUco", "Scale: Rows: "+firstMarker.rows() + " Cols: "+firstMarker.cols());
 
         double[] point1 = firstMarker.get(0,0); //Top left
         double[] point2 = firstMarker.get(1, 0); //Top right
@@ -381,6 +449,6 @@ public class MainActivity extends AppCompatActivity {
         double expectedMarkerWidth = 53.0;
 
         double scale = expectedMarkerWidth / pixelWidth;
-        Log.d("ARUco", "Scale (mm per pixel): " + scale);
+//        Log.d("ARUco", "Scale (mm per pixel): " + scale);
     }
 }
