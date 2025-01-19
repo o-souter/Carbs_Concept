@@ -67,6 +67,7 @@ public class MainActivity extends AppCompatActivity {
     private ArucoDetector arucoDetector;
     private TextView detectionFeedback;
     private OverlayView overlayView;
+    private ImageView liveImageView;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -92,32 +93,7 @@ public class MainActivity extends AppCompatActivity {
         previewView = findViewById(R.id.previewView);
         captureButton = findViewById(R.id.captureButton);
         overlayView = findViewById(R.id.overlayView);
-
-        // Wait until the layout pass is complete to get dimensions
-//        previewView.getViewTreeObserver().addOnPreDrawListener(new ViewTreeObserver.OnPreDrawListener() {
-//            @Override
-//            public boolean onPreDraw() {
-//                // Remove the listener to avoid infinite loop
-//                previewView.getViewTreeObserver().removeOnPreDrawListener(this);
-//
-//                // Get the width and height of previewView
-//                int previewWidth = previewView.getWidth();
-//                int previewHeight = previewView.getHeight();
-//
-//                // Log the dimensions
-//                Log.d("Dimensions", "PreviewView width: " + previewWidth + " height: " + previewHeight);
-//
-//                // Set the overlayView to match previewView size
-//                ConstraintLayout.LayoutParams params = new ConstraintLayout.LayoutParams(previewWidth, previewHeight);
-//                overlayView.setLayoutParams(params);
-//
-//                // Optionally, call requestLayout() if necessary
-//                overlayView.requestLayout();
-//                overlayView.invalidate();
-//
-//                return true;  // Continue the draw pass
-//            }
-//        });
+        liveImageView = findViewById(R.id.liveImageView);
 
 
         Log.d("App", "PreviewView width: " + previewView.getWidth() + " height: " + previewView.getHeight() + " OverlayView height: " + overlayView.getHeight() + " width: " + overlayView.getWidth());
@@ -159,7 +135,7 @@ public class MainActivity extends AppCompatActivity {
             CameraSelector cameraSelector = new CameraSelector.Builder().requireLensFacing(CameraSelector.LENS_FACING_BACK).build();
 
             Preview preview = new Preview.Builder().build();
-            preview.setSurfaceProvider(previewView.getSurfaceProvider());
+//            preview.setSurfaceProvider(previewView.getSurfaceProvider());
 
             ImageAnalysis imageAnalysis = new ImageAnalysis.Builder().setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST).build();
 
@@ -172,38 +148,22 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-//        ProcessCameraProvider.getInstance(this).addListener(() -> {
-//            try {
-//                ProcessCameraProvider cameraProvider = ProcessCameraProvider.getInstance(this).get();
-//                //Select the back camera of phone
-//                CameraSelector cameraSelector = new CameraSelector.Builder().requireLensFacing(CameraSelector.LENS_FACING_BACK).build();
-//
-////                imageCapture = new ImageCapture.Builder().build();
-//
-//                Preview preview = new Preview.Builder().build();
-//                preview.setSurfaceProvider(previewView.getSurfaceProvider());
-//
-////                cameraProvider.bindToLifecycle(this, cameraSelector, preview, imageCapture);
-//                //When button clicked, capture image
-////                captureButton.setOnClickListener(v -> captureImage());
-//
-//
-//            }
-//            catch (Exception e) {
-//                Log.e("CameraX", "Camera initialization failed: ", e);
-//            }
-//        }, ContextCompat.getMainExecutor(this));
-
 
 
     private void analyseFrame(ImageProxy imageProxy) {
         try {
+//            Log.d("Aruco", "Detecting markers...");
             Mat frame = rotateMat(imageProxyToMat(imageProxy), 270);
+
+//            Bitmap image = imageProxy.toBitmap();
+//            Mat frame = new Mat();
+//            Utils.bitmapToMat(image, frame);
+
 
             List<Mat> markerCorners = new ArrayList<>();
             Mat markerIds = new Mat();
-
             Mat greyImage = new Mat();
+
             //Convert to greyscale
             Imgproc.cvtColor(frame, greyImage, Imgproc.COLOR_BGR2GRAY);
 
@@ -218,82 +178,86 @@ public class MainActivity extends AppCompatActivity {
             //Apply binary threshold to better find markers
             Mat thresholdedFrame = new Mat();
             Imgproc.adaptiveThreshold(contrastGreyImage, thresholdedFrame, 255, Imgproc.ADAPTIVE_THRESH_GAUSSIAN_C, Imgproc.THRESH_BINARY, 15, 5);
+            Imgcodecs.imwrite(getFilesDir() + "/imageToDetect.jpg", gaussianBlurImage);
 
-            Mat imageToDetect = gaussianBlurImage;
-
-            Imgcodecs.imwrite(getFilesDir() + "/imageToDetect.jpg", imageToDetect);
-//            Log.d("Aruco", "Thresholded frame saved at: " + getFilesDir() + "/imageToDetect.jpg");
             //Detect markers in the current frame
-            arucoDetector.detectMarkers(imageToDetect, markerCorners, markerIds);
+            arucoDetector.detectMarkers(gaussianBlurImage, markerCorners, markerIds);
             Objdetect.drawDetectedMarkers(frame, markerCorners, markerIds);
-            if (!markerIds.empty()) {
-                List<List<Point>> cornersList = new ArrayList<>();
-                for (int i = 0; i < markerCorners.size(); i++) {
-                    // Get the marker corners
-
-                    Mat cornerMat = markerCorners.get(i);
-
-                    MatOfPoint2f cornerMatOfPoint2f = new MatOfPoint2f();
-
-                    cornerMat.convertTo(cornerMatOfPoint2f, CvType.CV_32F);
-
-                    List<Point> points = new ArrayList<>();
-                    for (int j = 0; j < cornerMatOfPoint2f.rows(); j++) {
-                        double[] corner = cornerMatOfPoint2f.get(j, 0);
-                        points.add(new Point(corner[0], corner[1]));
-                    }
-                    cornersList.add(points);
-                }
-                //Map coordinates to screen space coordinates
-                Size imageSize = imageToDetect.size();
-                int previewWidth = previewView.getWidth();
-                int previewHeight = previewView.getHeight();
-
-                for (List<Point> corners : cornersList) {
-                    for (int i = 0; i < corners.size(); i++) {
-//                        corners.set(i, mapToScreenSpace(corners.get(i), imageSize));
-                    }
-                }
-
-                runOnUiThread(() -> {
-                    detectionFeedback.setText(markerIds.rows() + " Fiducial marker(s) detected. Take picture when ready!");
-                    detectionFeedback.setTextColor(getResources().getColor(android.R.color.holo_green_dark));
-                    captureButton.setEnabled(true);
-
-//                    OverlayView overlayView = findViewById(R.id.overlayView);
-                    overlayView.setVisibility(View.VISIBLE);
-                    overlayView.setLayoutParams(previewView.getLayoutParams());
-//                    overlayView.setTransformation(0, 1f, 1f);
-                    overlayView.setImageScale(imageToDetect.width(), imageToDetect.height());
-//                    List<List<Point>> testMarkerCorners = new ArrayList<>();
-//                    List<Point> marker = new ArrayList<>();
-//                    marker.add(new Point(100, 100));
-//                    marker.add(new Point(200, 100));
-//                    marker.add(new Point(200, 200));
-//                    marker.add(new Point(100, 200));
-//                    testMarkerCorners.add(marker);
-//
-//                    overlayView.updateMarkerCorners(testMarkerCorners);
-                    Bitmap bitmap = Bitmap.createBitmap(frame.cols(), frame.rows(), Bitmap.Config.ARGB_8888);
-                    Utils.matToBitmap(frame, bitmap);
-                    overlayView.setImageScale(imageToDetect.width(), imageToDetect.height(), previewView.getWidth(), previewView.getHeight());
-                    overlayView.setImageBitmap(bitmap);
-
-                    overlayView.updateMarkerCorners(cornersList);
-                });
-            }
-            else {
-                runOnUiThread(() -> {
-                    detectionFeedback.setText("No fiducial marker detected.");
-                    detectionFeedback.setTextColor(getResources().getColor(android.R.color.holo_red_light));
-                    captureButton.setEnabled(false);
-//                    OverlayView overlayView = findViewById(R.id.overlayView);
-                    overlayView.setVisibility(View.INVISIBLE);
-                });
-            }
-
             Bitmap bitmap = Bitmap.createBitmap(frame.cols(), frame.rows(), Bitmap.Config.ARGB_8888);
             Utils.matToBitmap(frame, bitmap);
+
+            Mat rotatedFrame = rotateMat(frame, 270);
+            liveImageView.setImageBitmap(bitmap);
+
+
+//            if (!markerIds.empty()) {
+//                List<List<Point>> cornersList = new ArrayList<>();
+//                for (int i = 0; i < markerCorners.size(); i++) {
+//                    // Get the marker corners
+//
+//                    Mat cornerMat = markerCorners.get(i);
+//
+//                    MatOfPoint2f cornerMatOfPoint2f = new MatOfPoint2f();
+//
+//                    cornerMat.convertTo(cornerMatOfPoint2f, CvType.CV_32F);
+//
+//                    List<Point> points = new ArrayList<>();
+//                    for (int j = 0; j < cornerMatOfPoint2f.rows(); j++) {
+//                        double[] corner = cornerMatOfPoint2f.get(j, 0);
+//                        points.add(new Point(corner[0], corner[1]));
+//                    }
+//                    cornersList.add(points);
+//                }
+//                //Map coordinates to screen space coordinates
+//                Size imageSize = imageToDetect.size();
+//                int previewWidth = previewView.getWidth();
+//                int previewHeight = previewView.getHeight();
+//
+//                for (List<Point> corners : cornersList) {
+//                    for (int i = 0; i < corners.size(); i++) {
+////                        corners.set(i, mapToScreenSpace(corners.get(i), imageSize));
+//                    }
+//                }
+//
+//                runOnUiThread(() -> {
+//                    detectionFeedback.setText(markerIds.rows() + " Fiducial marker(s) detected. Take picture when ready!");
+//                    detectionFeedback.setTextColor(getResources().getColor(android.R.color.holo_green_dark));
+//                    captureButton.setEnabled(true);
+//
+////                    OverlayView overlayView = findViewById(R.id.overlayView);
+//                    overlayView.setVisibility(View.VISIBLE);
+//                    overlayView.setLayoutParams(previewView.getLayoutParams());
+////                    overlayView.setTransformation(0, 1f, 1f);
+//                    overlayView.setImageScale(imageToDetect.width(), imageToDetect.height());
+////                    List<List<Point>> testMarkerCorners = new ArrayList<>();
+////                    List<Point> marker = new ArrayList<>();
+////                    marker.add(new Point(100, 100));
+////                    marker.add(new Point(200, 100));
+////                    marker.add(new Point(200, 200));
+////                    marker.add(new Point(100, 200));
+////                    testMarkerCorners.add(marker);
+////
+////                    overlayView.updateMarkerCorners(testMarkerCorners);
+//                    Bitmap bitmap = Bitmap.createBitmap(frame.cols(), frame.rows(), Bitmap.Config.ARGB_8888);
+//                    Utils.matToBitmap(frame, bitmap);
+//                    overlayView.setImageScale(imageToDetect.width(), imageToDetect.height(), previewView.getWidth(), previewView.getHeight());
+//                    overlayView.setImageBitmap(bitmap);
+//
+//                    overlayView.updateMarkerCorners(cornersList);
+//                });
+//            }
+//            else {
+//                runOnUiThread(() -> {
+//                    detectionFeedback.setText("No fiducial marker detected.");
+//                    detectionFeedback.setTextColor(getResources().getColor(android.R.color.holo_red_light));
+//                    captureButton.setEnabled(false);
+////                    OverlayView overlayView = findViewById(R.id.overlayView);
+//                    overlayView.setVisibility(View.INVISIBLE);
+//                });
+//            }
+
+//            Bitmap bitmap = Bitmap.createBitmap(frame.cols(), frame.rows(), Bitmap.Config.ARGB_8888);
+//            Utils.matToBitmap(frame, bitmap);
         }
         catch (Exception e) {
             Log.e("Aruco", "Error analysing frame: ", e);
@@ -364,17 +328,33 @@ public class MainActivity extends AppCompatActivity {
     private Mat imageProxyToMat(ImageProxy imageProxy) {
         //Convert imageproxy to openCV mat
         ImageProxy.PlaneProxy[] planes = imageProxy.getPlanes();
+        int width = imageProxy.getWidth();
+        int height = imageProxy.getHeight();
 
-        ByteBuffer buffer = planes[0].getBuffer();
-        byte[] bytes = new byte[buffer.remaining()];
-        buffer.get(bytes);
+        Mat yuv = new Mat(height + height /2, width, CvType.CV_8UC1);
 
-        Mat yuv = new Mat(imageProxy.getHeight() + imageProxy.getHeight() / 2, imageProxy.getWidth(), CvType.CV_8UC1);
-        yuv.put(0,0, bytes);
+        // Copy Y plane
+        ByteBuffer yBuffer = planes[0].getBuffer();
+        int ySize = yBuffer.remaining();
+        byte[] yBytes = new byte[ySize];
+        yBuffer.get(yBytes);
+        yuv.put(0, 0, yBytes);
 
+        // Copy U and V planes (interleaved UV for NV21 format)
+        ByteBuffer uBuffer = planes[1].getBuffer();
+        ByteBuffer vBuffer = planes[2].getBuffer();
+        int uvSize = uBuffer.remaining();
+        byte[] uvBytes = new byte[uvSize * 2];
+        uBuffer.get(uvBytes, 0, uvSize);
+        vBuffer.get(uvBytes, uvSize, uvSize);
+        yuv.put(height, 0, uvBytes);
+
+        // Convert YUV to RGB
         Mat rgb = new Mat();
         Imgproc.cvtColor(yuv, rgb, Imgproc.COLOR_YUV2RGB_NV21);
-//        Imgproc.cvtColor(yuv, rgb, Imgproc.COLOR_BGR2RGB);
+
+        // Release the YUV Mat (optional but good practice)
+        yuv.release();
 
         return rgb;
     }
