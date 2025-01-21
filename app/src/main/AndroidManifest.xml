@@ -20,6 +20,9 @@
         android:theme="@style/Theme.Carbs_Concept"
         tools:targetApi="31">
         <activity
+            android:name=".AnalysisActivity"
+            android:exported="false" />
+        <activity
             android:name=".MainActivity"
             android:exported="true">
             <intent-filter>

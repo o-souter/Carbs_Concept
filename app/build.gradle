@@ -3,7 +3,8 @@ plugins {
 }
 
 def gitCommitCount = "git rev-list --count HEAD".execute().text.trim()
-
+def bigVersionNum = 1 //Keep track of bigger versions for the second decimal place in version
+def majorVersionNum = 0
 android {
     namespace 'com.example.carbs_concept'
     compileSdk 34
@@ -18,7 +19,7 @@ android {
         targetSdk 34
 //        versionCode gitCommitCount.toInteger()
 //        versionName "0.${gitCommitCount}"
-        buildConfigField "String", "APP_VERSION_NAME", "\"0.0.${gitCommitCount}\""
+        buildConfigField "String", "APP_VERSION_NAME", "\"${majorVersionNum}.${bigVersionNum}.${gitCommitCount}\""
         buildConfigField "int", "APP_VERSION_CODE", "${gitCommitCount}"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"

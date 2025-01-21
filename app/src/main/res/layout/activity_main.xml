@@ -34,17 +34,7 @@
     </androidx.camera.view.PreviewView>
 
 
-    <com.example.carbs_concept.OverlayView
-        android:id="@+id/overlayView"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:background="#00FFFFFF"
-        android:rotation="0"
-        app:layout_constraintBottom_toTopOf="@+id/captureButton"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
-<!--    <ImageView-->
+    <!--    <ImageView-->
 <!--        android:id="@+id/overlayImageView"-->
 <!--        android:layout_width="wrap_content"-->
 <!--        android:layout_height="wrap_content"-->
@@ -58,12 +48,13 @@
 
     <Button
         android:id="@+id/captureButton"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="145dp"
+        android:layout_height="70dp"
+        android:layout_marginBottom="16dp"
         android:text="Capture"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
 
     <TextView
         android:id="@+id/detectionFeedback"
@@ -85,8 +76,9 @@
         android:id="@+id/versionText"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:background="#88000000"
         android:text="C.A.R.B.S v0.0"
-        app:layout_constraintBottom_toBottomOf="@+id/captureButton"
-        app:layout_constraintStart_toStartOf="@+id/previewView" />
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
