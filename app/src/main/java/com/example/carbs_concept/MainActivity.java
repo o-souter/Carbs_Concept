@@ -98,9 +98,8 @@ public class MainActivity extends AppCompatActivity {
         captureButton = findViewById(R.id.captureButton);
         captureButton.setOnClickListener(v -> {
             if (imageCapture != null) {
-                //Main image processing pipeline
                 captureImage();
-                processImage(capturedImagePath);
+//                processImage(capturedImagePath);
             }
         });
 //        overlayView = findViewById(R.id.overlayView);
@@ -150,7 +149,7 @@ public class MainActivity extends AppCompatActivity {
 
             imageAnalysis.setAnalyzer(ContextCompat.getMainExecutor(this), this::analyseFrame);
 
-            imageCapture = new ImageCapture.Builder().setCaptureMode(ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY).build();
+            imageCapture = new ImageCapture.Builder().setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY).build();
 
             cameraProvider.bindToLifecycle(this, cameraSelector, preview, imageAnalysis, imageCapture);
         } catch (Exception e) {
@@ -289,31 +288,16 @@ public class MainActivity extends AppCompatActivity {
 
     private void captureImage() {
         File file = new File(getFilesDir(), "captured_image.jpg");
-
-//        if (file.exists()) {
-//            Log.d("captureImage", "Attempting to delete existing image found at: "+ file.getAbsolutePath());
-//            boolean deleted = file.delete();
-//            if (deleted) {
-//                Log.d("captureImage", "Successfully deleted image at: "+ file.getAbsolutePath());
-//
-//            }
-//            else {
-//                Log.d("captureImage", "Unable to delete image at: "+file.getAbsolutePath());
-//            }
-//
-//            file = new File(getFilesDir(), "captured_image.jpg");
-//        }
-
-        capturedImagePath = file.getAbsolutePath();
         ImageCapture.OutputFileOptions options = new ImageCapture.OutputFileOptions.Builder(file).build();
+
         imageCapture.takePicture(
                 options,
                 ContextCompat.getMainExecutor(this),
                 new ImageCapture.OnImageSavedCallback() {
                     @Override
                     public void onImageSaved(@NonNull ImageCapture.OutputFileResults outputFileResults) {
-                        Log.d("CameraX", "Saved image: " + file.getAbsolutePath());
-//                        processImage(file.getAbsolutePath());
+                        Log.d("CameraX", "Image saved: " + file.getAbsolutePath());
+                        processImage(file.getAbsolutePath());
                     }
 
                     @Override
@@ -322,6 +306,7 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }
         );
+
 //        Log.d("captureImage", "Image captured and saved to: " + file.getAbsolutePath());
     }
 //    private String createUniqueFileName(String name) {

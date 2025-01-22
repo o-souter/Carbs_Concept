@@ -16,7 +16,7 @@ import androidx.core.view.WindowInsetsCompat;
 
 public class AnalysisActivity extends AppCompatActivity {
     private String imagePath;
-    private ImageView segmentendImgView;
+    private ImageView segmentedImgView;
     private Bitmap imageBitmap;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -27,7 +27,7 @@ public class AnalysisActivity extends AppCompatActivity {
         imagePath = intent.getStringExtra("imagePath");
         BitmapFactory.Options bmOptions= new BitmapFactory.Options();
         imageBitmap = rotateBitmap(BitmapFactory.decodeFile(imagePath, bmOptions), 90);
-        segmentendImgView = findViewById(R.id.segmentendImgView);
+        segmentedImgView = findViewById(R.id.segmentedImgView);
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
@@ -38,7 +38,7 @@ public class AnalysisActivity extends AppCompatActivity {
     }
 
     private void analyseImage() {
-        segmentendImgView.setImageBitmap(imageBitmap);
+        segmentedImgView.setImageBitmap(imageBitmap);
     }
 
     private Bitmap rotateBitmap(Bitmap original, float degrees) {
