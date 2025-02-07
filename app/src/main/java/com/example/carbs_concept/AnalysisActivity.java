@@ -1,6 +1,9 @@
 package com.example.carbs_concept;
 
+import android.content.Context;
 import android.content.Intent;
+import android.content.res.AssetFileDescriptor;
+import android.content.res.AssetManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
@@ -13,6 +16,13 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
+
+import org.tensorflow.lite.Interpreter;
+
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
 
 public class AnalysisActivity extends AppCompatActivity {
     private String imagePath;
@@ -39,6 +49,7 @@ public class AnalysisActivity extends AppCompatActivity {
 
     private void analyseImage() {
         segmentedImgView.setImageBitmap(imageBitmap);
+        //FoodDetectionModel.
     }
 
     private Bitmap rotateBitmap(Bitmap original, float degrees) {
@@ -55,3 +66,4 @@ public class AnalysisActivity extends AppCompatActivity {
         return rotatedBitmap;
     }
 }
+
