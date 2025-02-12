@@ -57,5 +57,5 @@ dependencies {
     implementation "androidx.camera:camera-view:1.4.1"
     implementation project(":opencv")
     implementation 'org.tensorflow:tensorflow-lite:2.12.0'  // Use the latest version available
-    implementation 'org.tensorflow:tensorflow-lite-support:2.12.0'  // For support utilities
+    implementation 'org.tensorflow:tensorflow-lite-support:0.4.4'  // For support utilities
 }
