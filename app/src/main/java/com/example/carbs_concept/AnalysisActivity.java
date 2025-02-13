@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.Matrix;
 import android.os.Bundle;
 import android.util.Base64;
@@ -72,6 +73,7 @@ public class AnalysisActivity extends AppCompatActivity {
         if (!imageFile.exists()) {
             Log.e("OkHTTP Image Upload", "File not found at " + imagePath);
             textStatus.setText("Unable to find file.");
+            textStatus.setTextColor(Color.RED);
             return;
         }
         //Create request body
@@ -101,6 +103,7 @@ public class AnalysisActivity extends AppCompatActivity {
                 if (response.isSuccessful()) {
                     Log.d("OkHTTP Image Upload", "Success"+ response.body().string());
                     runOnUiThread(() -> textStatus.setText("Image successfully sent to flask server!"));
+                    runOnUiThread(() -> textStatus.setTextColor(Color.GREEN));
                 }
                 else {
                     Log.e("OkHTTP Image Upload", "Error: "+response.code());
