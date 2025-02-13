@@ -58,4 +58,6 @@ dependencies {
     implementation project(":opencv")
     implementation 'org.tensorflow:tensorflow-lite:2.12.0'  // Use the latest version available
     implementation 'org.tensorflow:tensorflow-lite-support:0.4.4'  // For support utilities
+    implementation 'com.squareup.okhttp3:okhttp:4.5.0'
+
 }
