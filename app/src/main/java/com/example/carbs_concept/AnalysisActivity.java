@@ -11,6 +11,7 @@ import android.util.Log;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
+import android.widget.TextView;
 
 import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
@@ -41,6 +42,7 @@ public class AnalysisActivity extends AppCompatActivity {
     private Bitmap imageBitmap;
     private ProgressBar progressBar;
     private String url = "http://192.168.1.168:5000";
+    private TextView textStatus;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -53,12 +55,13 @@ public class AnalysisActivity extends AppCompatActivity {
         segmentedImgView = findViewById(R.id.segmentedImgView);
         progressBar = findViewById(R.id.progressBar);
         progressBar.setVisibility(View.INVISIBLE);
+        textStatus = findViewById(R.id.textStatus);
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
         });
-
+        textStatus.setText("Configuring Connection with flask backend...");
         uploadImage(imagePath);
     }
 
@@ -68,6 +71,7 @@ public class AnalysisActivity extends AppCompatActivity {
         File imageFile = new File(imagePath);
         if (!imageFile.exists()) {
             Log.e("OkHTTP Image Upload", "File not found at " + imagePath);
+            textStatus.setText("Unable to find file.");
             return;
         }
         //Create request body
@@ -84,85 +88,26 @@ public class AnalysisActivity extends AppCompatActivity {
                 .build();
 
         //Execute request in background
-
+        textStatus.setText("Sending Request...");
         client.newCall(request).enqueue(new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
                 e.printStackTrace();
                 Log.e("OkHTTP Image Upload", "Failed: " + e.getMessage());
+                runOnUiThread(() -> textStatus.setText("Request Failed: " + e.getMessage()));
             }
             @Override
             public void onResponse(Call call, Response response) throws IOException {
                 if (response.isSuccessful()) {
                     Log.d("OkHTTP Image Upload", "Success"+ response.body().string());
+                    runOnUiThread(() -> textStatus.setText("Image successfully sent to flask server!"));
                 }
                 else {
-                    Log.e("OkHTTP Image Upload", "Error"+response.code());
+                    Log.e("OkHTTP Image Upload", "Error: "+response.code());
+                    runOnUiThread(() -> textStatus.setText("Request Error: "+response.code()));
                 }
             }
         });
-    }
-
-    private void sendImageForAnalysis() throws IOException {
-        progressBar.setVisibility(View.VISIBLE);
-
-        String base64_Img = convertImgToBase64(imageBitmap);
-        sendRequest("POST", "upload-image", "image1", base64_Img);
-
-
-        progressBar.setVisibility(View.VISIBLE);
-    }
-
-    private void sendRequest(String requestType, String method, String name, String text) {
-        String requestURL = url+"/"+method+"/"+name; //Create the request string e.g. http://192.168.0.0:5000/send-image/base64encdodedimg
-        Request request;
-
-        OkHttpClient client = new OkHttpClient().newBuilder()
-                .connectTimeout(10, TimeUnit.SECONDS)
-                .readTimeout(10, TimeUnit.SECONDS)
-                .writeTimeout(10, TimeUnit.SECONDS)
-                .build();
-
-        if (requestType == "POST") {
-            //POST request
-            RequestBody formBody = new FormBody.Builder().add(name, text).build();
-
-            request = new Request.Builder().url(requestURL).post(formBody).build();
-        }
-        else {
-            //GET Request
-            request = new Request.Builder().url(requestURL).build();
-        }
-
-        Log.d("AnalysisActivity","Creating request to send data to flask...");
-        Log.d("AnalysisActivity","Sending '" + requestType + "' request to URL: "+requestURL);
-        Log.d("AnalysisActivity","Sending content '" + name + "': "+ text);
-
-
-
-        client.newCall(request).enqueue(new Callback() {
-            @Override
-            public void onFailure(@NonNull Call call, @NonNull IOException e) {
-                e.printStackTrace();
-            }
-            @Override
-            public void onResponse(Call call, final Response response) throws IOException {
-
-                //Read data on worker thread
-                final String responseData = response.body().string();
-
-
-            }
-        });
-    }
-
-    private String convertImgToBase64(Bitmap img) {
-        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-        img.compress(Bitmap.CompressFormat.PNG, 1, byteArrayOutputStream);
-        byte[] byteArray = byteArrayOutputStream .toByteArray();
-
-        return Base64.encodeToString(byteArray, Base64.DEFAULT);
-
     }
 
     private Bitmap rotateBitmap(Bitmap original, float degrees) {
