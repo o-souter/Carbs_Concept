@@ -62,6 +62,7 @@ public class AnalysisActivity extends AppCompatActivity {
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
         });
+
         textStatus.setText("Configuring Connection with flask backend...");
         uploadImage(imagePath);
     }

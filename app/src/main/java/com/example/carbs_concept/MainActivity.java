@@ -1,5 +1,7 @@
 package com.example.carbs_concept;
 
+import static org.opencv.imgproc.Imgproc.COLOR_BGR2RGB;
+
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
@@ -38,7 +40,6 @@ import androidx.camera.core.ImageCapture;
 import androidx.camera.view.PreviewView;
 
 //OpenCV
-import org.opencv.BuildConfig;
 import org.opencv.android.OpenCVLoader;
 import org.opencv.android.Utils;
 import org.opencv.core.Core;
@@ -65,7 +66,7 @@ public class MainActivity extends AppCompatActivity {
     private static final int CAMERA_PERMISSION_CODE = 100;
 
     private ImageCapture imageCapture;
-    private PreviewView previewView;
+//    private PreviewView previewView;
     private Button captureButton;
     private ArucoDetector arucoDetector;
     private TextView detectionFeedback;
@@ -85,8 +86,8 @@ public class MainActivity extends AppCompatActivity {
         }
 
         //Set up versioning
-        String versionName = com.example.carbs_concept.BuildConfig.APP_VERSION_NAME;
-        int versionCode = com.example.carbs_concept.BuildConfig.APP_VERSION_CODE;
+        String versionName = BuildConfig.APP_VERSION_NAME;
+        int versionCode = BuildConfig.APP_VERSION_CODE;
 
         TextView versionText = findViewById(R.id.versionText);
         versionText.setText("C.A.R.B.S v" + versionName + " (" + versionCode + ")");
@@ -94,7 +95,7 @@ public class MainActivity extends AppCompatActivity {
         getPermissions();
 
         //Setup widgets
-        previewView = findViewById(R.id.previewView);
+//        previewView = findViewById(R.id.previewView);
         captureButton = findViewById(R.id.captureButton);
         captureButton.setOnClickListener(v -> {
             if (imageCapture != null) {
@@ -143,7 +144,7 @@ public class MainActivity extends AppCompatActivity {
             CameraSelector cameraSelector = new CameraSelector.Builder().requireLensFacing(CameraSelector.LENS_FACING_BACK).build();
 
             Preview preview = new Preview.Builder().build();
-            preview.setSurfaceProvider(previewView.getSurfaceProvider());
+//            preview.setSurfaceProvider(previewView.getSurfaceProvider());
 
             ImageAnalysis imageAnalysis = new ImageAnalysis.Builder().setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST).build();
 
@@ -170,7 +171,9 @@ public class MainActivity extends AppCompatActivity {
 
             //Convert to greyscale
             Imgproc.cvtColor(frame, greyImage, Imgproc.COLOR_BGR2GRAY);
-
+            Mat rgbFrame = new Mat();
+            //Get colour image to show on screen
+            Imgproc.cvtColor(frame, rgbFrame, COLOR_BGR2RGB);
             //Increase contrast
             Mat contrastGreyImage = new Mat();
             Core.normalize(greyImage, contrastGreyImage, 0, 255, Core.NORM_MINMAX);
@@ -186,12 +189,14 @@ public class MainActivity extends AppCompatActivity {
 
             //Detect markers in the current frame
             arucoDetector.detectMarkers(gaussianBlurImage, markerCorners, markerIds);
-            Objdetect.drawDetectedMarkers(frame, markerCorners, markerIds);
+            Objdetect.drawDetectedMarkers(rgbFrame, markerCorners, markerIds);
             Bitmap bitmap = Bitmap.createBitmap(frame.cols(), frame.rows(), Bitmap.Config.ARGB_8888);
             Utils.matToBitmap(frame, bitmap);
+            Bitmap rgbBitmap = Bitmap.createBitmap(frame.cols(), frame.rows(), Bitmap.Config.ARGB_8888);
+            Utils.matToBitmap(rgbFrame, rgbBitmap);
 
             Mat rotatedFrame = rotateMat(frame, 270);
-            liveImageView.setImageBitmap(bitmap);
+            liveImageView.setImageBitmap(rgbBitmap);
 
             if (!markerIds.empty()) {
                 List<List<Point>> cornersList = new ArrayList<>();
