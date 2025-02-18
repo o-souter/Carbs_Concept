@@ -10,6 +10,8 @@ import android.os.Bundle;
 import android.util.Base64;
 import android.util.Log;
 import android.view.View;
+import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
@@ -39,11 +41,13 @@ import okhttp3.Response;
 
 public class AnalysisActivity extends AppCompatActivity {
     private String imagePath;
+    private String pointCloudPath;
     private ImageView segmentedImgView;
     private Bitmap imageBitmap;
     private ProgressBar progressBar;
     private String url = "http://192.168.1.168:5000";
     private TextView textStatus;
+    private ImageButton btnBackToCamera;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -51,12 +55,20 @@ public class AnalysisActivity extends AppCompatActivity {
         setContentView(R.layout.activity_analysis);
         Intent intent = getIntent();
         imagePath = intent.getStringExtra("imagePath");
+//        pointCloudPath = intent.getStringExtra("pointCloudPath");
         BitmapFactory.Options bmOptions= new BitmapFactory.Options();
         imageBitmap = rotateBitmap(BitmapFactory.decodeFile(imagePath, bmOptions), 90);
         segmentedImgView = findViewById(R.id.segmentedImgView);
         progressBar = findViewById(R.id.progressBar);
         progressBar.setVisibility(View.INVISIBLE);
         textStatus = findViewById(R.id.textStatus);
+        btnBackToCamera = findViewById(R.id.btnBackToCamera);
+
+        btnBackToCamera.setOnClickListener(v -> {
+            Intent backToCamera = new Intent(this, MainActivity.class);
+            startActivity(backToCamera);
+        });
+
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
@@ -64,24 +76,29 @@ public class AnalysisActivity extends AppCompatActivity {
         });
 
         textStatus.setText("Configuring Connection with flask backend...");
-        uploadImage(imagePath);
+        uploadImage(imagePath, pointCloudPath);
     }
 
-    private void uploadImage(String imagePath) {
+    private void uploadImage(String imagePath, String pointCloudPath) {
         OkHttpClient client = new OkHttpClient();
 
         File imageFile = new File(imagePath);
-        if (!imageFile.exists()) {
-            Log.e("OkHTTP Image Upload", "File not found at " + imagePath);
-            textStatus.setText("Unable to find file.");
-            textStatus.setTextColor(Color.RED);
-            return;
-        }
+//        File pointCloudFile = new File(pointCloudPath);
+//        if (!imageFile.exists() | !pointCloudFile.exists()) {
+//            Log.e("OkHTTP Image Upload", "Files for upload not found.");
+//            textStatus.setText("Unable to find file:\n" +
+//                    "Image exists: " + imageFile.exists() + "\n" +
+//                    "PointCloud exists: " + pointCloudFile.exists());
+//            textStatus.setTextColor(Color.RED);
+//            return;
+//        }
         //Create request body
         RequestBody requestBody = new MultipartBody.Builder()
                 .setType(MultipartBody.FORM)
                 .addFormDataPart("image", imageFile.getName(),
                         RequestBody.create(imageFile, MediaType.parse("image/jpeg")))
+//                .addFormDataPart("pointcloud", pointCloudFile.getName(),
+//                        RequestBody.create(pointCloudFile, MediaType.parse("text/plain")))
                 .build();
 
         //Create request itself
@@ -103,7 +120,7 @@ public class AnalysisActivity extends AppCompatActivity {
             public void onResponse(Call call, Response response) throws IOException {
                 if (response.isSuccessful()) {
                     Log.d("OkHTTP Image Upload", "Success"+ response.body().string());
-                    runOnUiThread(() -> textStatus.setText("Image successfully sent to flask server!"));
+                    runOnUiThread(() -> textStatus.setText("Image successfully sent to flask server! \nPress back to take another."));
                     runOnUiThread(() -> textStatus.setTextColor(Color.GREEN));
                 }
                 else {

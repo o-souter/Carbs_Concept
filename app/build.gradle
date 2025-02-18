@@ -49,6 +49,7 @@ dependencies {
     implementation libs.activity
     implementation libs.constraintlayout
     implementation libs.camera.lifecycle
+    implementation libs.core
     testImplementation libs.junit
     androidTestImplementation libs.ext.junit
     androidTestImplementation libs.espresso.core
@@ -59,5 +60,7 @@ dependencies {
     implementation 'org.tensorflow:tensorflow-lite:2.12.0'  // Use the latest version available
     implementation 'org.tensorflow:tensorflow-lite-support:0.4.4'  // For support utilities
     implementation 'com.squareup.okhttp3:okhttp:4.5.0'
+
+    implementation 'com.google.ar:core:1.47.0' //ARCORE pointcloud support
 
 }

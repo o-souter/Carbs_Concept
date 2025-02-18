@@ -1,5 +1,6 @@
 package com.example.carbs_concept;
 
+import static org.opencv.android.NativeCameraView.TAG;
 import static org.opencv.imgproc.Imgproc.COLOR_BGR2RGB;
 
 import android.content.Intent;
@@ -12,13 +13,17 @@ import android.view.ViewTreeObserver;
 import android.widget.Button;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.nio.ByteBuffer;
+import java.nio.FloatBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.Array;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+
 import android.view.View;
 import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
@@ -62,17 +67,25 @@ import android.Manifest;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import com.google.ar.core.Config;
+import com.google.ar.core.Frame;
+import com.google.ar.core.PointCloud;
+import com.google.ar.core.Session;
+import com.google.ar.core.exceptions.CameraNotAvailableException;
+import com.google.ar.core.exceptions.MissingGlContextException;
+import com.google.ar.core.exceptions.UnavailableException;
+
 public class MainActivity extends AppCompatActivity {
     private static final int CAMERA_PERMISSION_CODE = 100;
 
     private ImageCapture imageCapture;
-//    private PreviewView previewView;
     private Button captureButton;
     private ArucoDetector arucoDetector;
     private TextView detectionFeedback;
-//    private OverlayView overlayView;
     private ImageView liveImageView;
     private String capturedImagePath;
+    private Session arSession;
+    private Button btnBackToCamera;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -85,6 +98,13 @@ public class MainActivity extends AppCompatActivity {
             Log.d("OpenCV", "OpenCV initialized successfully.");
         }
 
+//        //Confirm ARCOre setup correctly
+//        try {
+//            arSession = new Session(this);
+//        } catch (UnavailableException e) {
+//            Log.e("ARCore", "ARCore session could not be created", e);
+//        }
+
         //Set up versioning
         String versionName = BuildConfig.APP_VERSION_NAME;
         int versionCode = BuildConfig.APP_VERSION_CODE;
@@ -93,9 +113,7 @@ public class MainActivity extends AppCompatActivity {
         versionText.setText("C.A.R.B.S v" + versionName + " (" + versionCode + ")");
         //Request permissions
         getPermissions();
-
         //Setup widgets
-//        previewView = findViewById(R.id.previewView);
         captureButton = findViewById(R.id.captureButton);
         captureButton.setOnClickListener(v -> {
             if (imageCapture != null) {
@@ -103,24 +121,54 @@ public class MainActivity extends AppCompatActivity {
 //                processImage(capturedImagePath);
             }
         });
-//        overlayView = findViewById(R.id.overlayView);
         liveImageView = findViewById(R.id.liveImageView);
-//        Log.d("App", "PreviewView width: " + previewView.getWidth() + " height: " + previewView.getHeight() + " OverlayView height: " + overlayView.getHeight() + " width: " + overlayView.getWidth());
         initializeArucoDetector();
         initializeCamera();
-
-
-
         detectionFeedback = findViewById((R.id.detectionFeedback));
         //Set up the GUI
-
-
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
         });
     }
+
+//    @Override
+//    protected void onPause() {
+//        super.onPause();
+//
+//        // Pause the AR session
+//        if (arSession != null) {
+//            arSession.pause();
+//        }
+//    }
+//
+//    @Override
+//    protected void onResume() {
+//        super.onResume();
+//
+//        // Resume the AR session
+//        if (arSession != null) {
+//            try {
+//                arSession.resume();
+//                // Handle ARCore updates, such as session updates and rendering
+//            } catch (CameraNotAvailableException e) {
+//                Log.e(TAG, "Camera not available during onResume", e);
+//            } catch (MissingGlContextException e) {
+//                Log.e(TAG, "GL context is missing", e);
+//            }
+//        }
+//    }
+//
+//    @Override
+//    protected void onDestroy() {
+//        super.onDestroy();
+//
+//        // Release the session when the activity is destroyed
+//        if (arSession != null) {
+//            arSession = null;
+//        }
+//    }
 
     private void getPermissions() {
         //Camera permissions
@@ -142,16 +190,10 @@ public class MainActivity extends AppCompatActivity {
         try {
             ProcessCameraProvider cameraProvider = ProcessCameraProvider.getInstance(this).get();
             CameraSelector cameraSelector = new CameraSelector.Builder().requireLensFacing(CameraSelector.LENS_FACING_BACK).build();
-
             Preview preview = new Preview.Builder().build();
-//            preview.setSurfaceProvider(previewView.getSurfaceProvider());
-
             ImageAnalysis imageAnalysis = new ImageAnalysis.Builder().setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST).build();
-
             imageAnalysis.setAnalyzer(ContextCompat.getMainExecutor(this), this::analyseFrame);
-
             imageCapture = new ImageCapture.Builder().setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY).build();
-
             cameraProvider.bindToLifecycle(this, cameraSelector, preview, imageAnalysis, imageCapture);
         } catch (Exception e) {
             Log.e("CameraX", "Camera initialization failed: ", e);
@@ -293,6 +335,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void captureImage() {
         File file = new File(getFilesDir(), "captured_image.jpg");
+//        File pointCloudFile = new File(getFilesDir(), "point_cloud.txt");
         ImageCapture.OutputFileOptions options = new ImageCapture.OutputFileOptions.Builder(file).build();
 
         imageCapture.takePicture(
@@ -302,7 +345,23 @@ public class MainActivity extends AppCompatActivity {
                     @Override
                     public void onImageSaved(@NonNull ImageCapture.OutputFileResults outputFileResults) {
                         Log.d("CameraX", "Image saved: " + file.getAbsolutePath());
-                        processImage(file.getAbsolutePath());
+
+                        // Create a CountDownLatch to block the main thread until point cloud capture is complete
+//                        CountDownLatch latch = new CountDownLatch(1);
+
+                        // Capture point cloud asynchronously
+//                        capturePointCloud(pointCloudFile, latch);
+
+//                        try {
+//                            // Wait for point cloud capture to finish before continuing
+//                            latch.await();
+//                        } catch (InterruptedException e) {
+//                            Log.e("ARCore", "Error waiting for point cloud capture:", e);
+//                        }
+
+                        // Now process both the image and the point cloud
+                        processImage(file.getAbsolutePath());//, pointCloudFile.getAbsolutePath());
+
                     }
 
                     @Override
@@ -312,20 +371,59 @@ public class MainActivity extends AppCompatActivity {
                 }
         );
 
-//        Log.d("captureImage", "Image captured and saved to: " + file.getAbsolutePath());
-    }
-//    private String createUniqueFileName(String name) {
-//        Path folderPath = getFilesDir();
-//        String filePath = name;
-//        Files.deleteIfExists()
 //
-//        return fileName;
-//    }
+    }
 
-    private void processImage(String imagePath) {
+    private void capturePointCloud(File file, CountDownLatch latch) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    if (arSession != null) {
+                        // Ensure the AR session is resumed and updating in the correct thread
+                        if (arSession.getConfig().getUpdateMode() == Config.UpdateMode.BLOCKING) {
+                            arSession.resume(); // Resume session if paused
+                        }
+
+                        // Set the update mode to LATEST_CAMERA_IMAGE
+                        Config config = arSession.getConfig();
+                        config.setUpdateMode(Config.UpdateMode.LATEST_CAMERA_IMAGE);
+                        arSession.configure(config);
+
+                        // Capture the point cloud
+                        Frame frame = arSession.update();
+                        PointCloud pointCloud = frame.acquirePointCloud();
+
+                        FloatBuffer buffer = pointCloud.getPoints();
+                        FileOutputStream fos = new FileOutputStream(file);
+
+                        while (buffer.hasRemaining()) {
+                            float x = buffer.get();
+                            float y = buffer.get();
+                            float z = buffer.get();
+                            float confidence = buffer.get();
+                            String pointData = x + "," + y + "," + z + "," + confidence + "\n";
+                            fos.write(pointData.getBytes());
+                        }
+
+                        fos.close();
+                        pointCloud.release();
+                        Log.d("ARCore", "Point cloud saved: " + file.getAbsolutePath());
+                    } else {
+                        Log.e("ARCore", "AR session is null.");
+                    }
+                } catch (Exception e) {
+                    Log.e("ARCore", "Error saving point cloud:", e);
+                }
+            }
+        });
+    }
+
+    private void processImage(String imagePath){//, String pointCloudPath) {
 
         Intent intent = new Intent(this, AnalysisActivity.class);
         intent.putExtra("imagePath", imagePath);
+//        intent.putExtra("pointCloudPath", pointCloudPath);
 
         startActivity(intent);
     }
