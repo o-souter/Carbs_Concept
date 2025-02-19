@@ -29,6 +29,7 @@ import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.camera.core.Camera;
+import androidx.camera.core.CameraProvider;
 import androidx.camera.core.ImageAnalysis;
 import androidx.camera.core.ImageCaptureException;
 import androidx.camera.core.ImageProxy;
@@ -86,6 +87,7 @@ public class MainActivity extends AppCompatActivity {
     private String capturedImagePath;
     private Session arSession;
     private Button btnBackToCamera;
+    private ProcessCameraProvider cameraProvider;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -110,7 +112,7 @@ public class MainActivity extends AppCompatActivity {
         int versionCode = BuildConfig.APP_VERSION_CODE;
 
         TextView versionText = findViewById(R.id.versionText);
-        versionText.setText("C.A.R.B.S v" + versionName + " (" + versionCode + ")");
+        versionText.setText("C.A.R.B.S CaptureTool v" + versionName + " (" + versionCode + ")");
         //Request permissions
         getPermissions();
         //Setup widgets
@@ -188,7 +190,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void initializeCamera() {
         try {
-            ProcessCameraProvider cameraProvider = ProcessCameraProvider.getInstance(this).get();
+            cameraProvider = ProcessCameraProvider.getInstance(this).get();
             CameraSelector cameraSelector = new CameraSelector.Builder().requireLensFacing(CameraSelector.LENS_FACING_BACK).build();
             Preview preview = new Preview.Builder().build();
             ImageAnalysis imageAnalysis = new ImageAnalysis.Builder().setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST).build();
@@ -200,7 +202,13 @@ public class MainActivity extends AppCompatActivity {
         }
 
     }
-
+    private void releaseCamera() {
+        if (cameraProvider != null) {
+            cameraProvider.unbindAll();
+            cameraProvider = null;
+            Log.d("CameraX", "Camera released successfully.");
+        }
+    }
 
 
     private void analyseFrame(ImageProxy imageProxy) {
@@ -424,7 +432,7 @@ public class MainActivity extends AppCompatActivity {
         Intent intent = new Intent(this, AnalysisActivity.class);
         intent.putExtra("imagePath", imagePath);
 //        intent.putExtra("pointCloudPath", pointCloudPath);
-
+//        releaseCamera();
         startActivity(intent);
     }
 

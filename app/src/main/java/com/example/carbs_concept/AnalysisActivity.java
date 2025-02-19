@@ -23,9 +23,17 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
+import com.google.ar.core.Config;
+import com.google.ar.core.Frame;
+import com.google.ar.core.PointCloud;
+import com.google.ar.core.Session;
+import com.google.ar.core.exceptions.CameraNotAvailableException;
+
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.FloatBuffer;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -48,6 +56,7 @@ public class AnalysisActivity extends AppCompatActivity {
     private String url = "http://192.168.1.168:5000";
     private TextView textStatus;
     private ImageButton btnBackToCamera;
+    private Session arSession;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -74,10 +83,103 @@ public class AnalysisActivity extends AppCompatActivity {
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
         });
-
+//        textStatus.setText("Capturing point cloud. Please hold camera still!");
+//        try {
+//            arSession = new Session(this);
+//            arSession.configure(new Config(arSession));
+//        }
+//        catch (Exception e) {
+//            Log.e("ARCore", "Failed to create AR Session");
+//        }
+        //        //Confirm ARCOre setup correctly
+//        try {
+//            arSession = new Session(this);
+//        } catch (UnavailableException e) {
+//            Log.e("ARCore", "ARCore session could not be created", e);
+//        }
+//        String pointCloudPath = getPointCloudFile();
+//        File pointCloudFile = new File(pointCloudPath);
+//        if (!pointCloudFile.exists()) {
+//            textStatus.setText("Unable to capture point cloud file");
+//            textStatus.setTextColor(Color.RED);
+//        }
+//        else {
+//
+//        }
         textStatus.setText("Configuring Connection with flask backend...");
         uploadImage(imagePath, pointCloudPath);
+
     }
+
+//    @Override
+//    protected void onResume() {
+//        super.onResume();
+//        if (arSession != null) {
+//            try {
+//                arSession.resume();
+//            } catch (CameraNotAvailableException e) {
+//                Log.e("ARCore", "Camera not available");;
+//            }
+//        }
+//    }
+//
+//    @Override
+//    protected void onPause() {
+//        super.onPause();
+//        if (arSession != null) {
+//            arSession.pause();
+//        }
+//    }
+    private String getPointCloudFile() {
+        if (arSession != null) {
+            try {
+                arSession.resume();
+                if (arSession == null) {
+                    Log.e("ARCore", "Session is null");
+                } else {
+                    Log.d("ARCore", "Session is active, updating frame...");
+                }
+                Frame frame = arSession.update();
+                PointCloud pointCloud = frame.acquirePointCloud();
+                String filePath = savePointCloudToFile(pointCloud);
+                pointCloud.release();
+                return filePath;
+            } catch (Exception e) {
+                Log.e("ARCore", "Error getting point cloud", e);
+                textStatus.setText("Error capturing point cloud");
+                textStatus.setTextColor(Color.RED);
+                if (arSession == null) {
+                    Log.e("ARCore", "Session is null");
+                }
+                return null;
+            }
+        }
+        return null;
+    }
+
+    private String savePointCloudToFile(PointCloud pointCloud) {
+        File file = new File(getFilesDir(), "pointcloud.txt"); // Internal storage
+
+        try (FileWriter writer = new FileWriter(file, true)) {
+            FloatBuffer points = pointCloud.getPoints();
+            while (points.hasRemaining()) {
+                float x = points.get();       // X coordinate
+                float y = points.get();       // Y coordinate
+                float z = points.get();       // Z coordinate
+                float confidence = points.get(); // Confidence value
+
+                writer.write(x + "," + y + "," + z + "," + confidence + "\n");
+                return file.getAbsolutePath();
+            }
+            Log.d("ARCore", "Point cloud saved: " + file.getAbsolutePath());
+        } catch (IOException e) {
+            Log.e("ARCore", "Error saving point cloud", e);
+            return null;
+        }
+        return null;
+    }
+
+
 
     private void uploadImage(String imagePath, String pointCloudPath) {
         OkHttpClient client = new OkHttpClient();
@@ -119,8 +221,11 @@ public class AnalysisActivity extends AppCompatActivity {
             @Override
             public void onResponse(Call call, Response response) throws IOException {
                 if (response.isSuccessful()) {
-                    Log.d("OkHTTP Image Upload", "Success"+ response.body().string());
-                    runOnUiThread(() -> textStatus.setText("Image successfully sent to flask server! \nPress back to take another."));
+                    String response_str = response.body().string();
+                    Log.d("OkHTTP Image Upload", "Success"+ response_str);
+//                    runOnUiThread(() -> textStatus.setText("Image successfully sent to flask server! \nPress back to take another."));
+
+                    runOnUiThread(() -> textStatus.setText(response_str));
                     runOnUiThread(() -> textStatus.setTextColor(Color.GREEN));
                 }
                 else {

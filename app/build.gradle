@@ -3,7 +3,7 @@ plugins {
 }
 
 def gitCommitCount = "git rev-list --count HEAD".execute().text.trim()
-def bigVersionNum = 1 //Keep track of bigger versions for the second decimal place in version
+def bigVersionNum = 2 //Keep track of bigger versions for the second decimal place in version
 def majorVersionNum = 0
 android {
     namespace 'com.example.carbs_concept'
