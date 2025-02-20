@@ -75,6 +75,8 @@ import com.google.ar.core.Session;
 import com.google.ar.core.exceptions.CameraNotAvailableException;
 import com.google.ar.core.exceptions.MissingGlContextException;
 import com.google.ar.core.exceptions.UnavailableException;
+import org.opencv.core.Core;
+import android.util.Log;
 
 public class MainActivity extends AppCompatActivity {
     private static final int CAMERA_PERMISSION_CODE = 100;
@@ -88,6 +90,8 @@ public class MainActivity extends AppCompatActivity {
     private Session arSession;
     private Button btnBackToCamera;
     private ProcessCameraProvider cameraProvider;
+    private String defaultServerIP = "127.0.0.10";
+    private String defaultServerPort = "5000";
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -97,8 +101,10 @@ public class MainActivity extends AppCompatActivity {
         if (!OpenCVLoader.initDebug()) {
             Log.e("OpenCV", "OpenCV initialization failed!");
         } else {
-            Log.d("OpenCV", "OpenCV initialized successfully.");
+            Log.d("OpenCV", "OpenCV initialized successfully");
         }
+        Log.d("OpenCV Version", Core.VERSION);
+
 
 //        //Confirm ARCOre setup correctly
 //        try {
@@ -112,7 +118,10 @@ public class MainActivity extends AppCompatActivity {
         int versionCode = BuildConfig.APP_VERSION_CODE;
 
         TextView versionText = findViewById(R.id.versionText);
-        versionText.setText("C.A.R.B.S CaptureTool v" + versionName + " (" + versionCode + ")");
+        versionText.setText("C.A.R.B.S CaptureTool v" + versionName);// + " (" + versionCode + ")");
+
+        testFlaskConnection();
+
         //Request permissions
         getPermissions();
         //Setup widgets
@@ -127,6 +136,10 @@ public class MainActivity extends AppCompatActivity {
         initializeArucoDetector();
         initializeCamera();
         detectionFeedback = findViewById((R.id.detectionFeedback));
+
+        //Test connection to flask backend
+
+
         //Set up the GUI
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
@@ -135,42 +148,14 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-//    @Override
-//    protected void onPause() {
-//        super.onPause();
-//
-//        // Pause the AR session
-//        if (arSession != null) {
-//            arSession.pause();
-//        }
-//    }
-//
-//    @Override
-//    protected void onResume() {
-//        super.onResume();
-//
-//        // Resume the AR session
-//        if (arSession != null) {
-//            try {
-//                arSession.resume();
-//                // Handle ARCore updates, such as session updates and rendering
-//            } catch (CameraNotAvailableException e) {
-//                Log.e(TAG, "Camera not available during onResume", e);
-//            } catch (MissingGlContextException e) {
-//                Log.e(TAG, "GL context is missing", e);
-//            }
-//        }
-//    }
-//
-//    @Override
-//    protected void onDestroy() {
-//        super.onDestroy();
-//
-//        // Release the session when the activity is destroyed
-//        if (arSession != null) {
-//            arSession = null;
-//        }
-//    }
+    private void testFlaskConnection() {
+        String result = ServerConfigurationActivity.probeServer(defaultServerIP, defaultServerPort);
+        Log.d("Flask backend test", result);
+        if (result.contains("Error") | result.contains("Failed")) {//If cannot connect using default value
+            Intent intent = new Intent(this, ServerConfigurationActivity.class);
+            startActivity(intent);
+        }
+    }
 
     private void getPermissions() {
         //Camera permissions
