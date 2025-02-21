@@ -90,13 +90,33 @@ public class MainActivity extends AppCompatActivity {
     private Session arSession;
     private Button btnBackToCamera;
     private ProcessCameraProvider cameraProvider;
-    private String defaultServerIP = "127.0.0.10";
+    private String defaultServerIP = "192.168.1.168";
     private String defaultServerPort = "5000";
+    private String correctServerIP;
+    private String correctServerPort;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_main);
+
+        String testIP = defaultServerIP;
+        String testPort = defaultServerPort;
+
+        Intent intent = getIntent();
+        String correctIP = intent.getStringExtra("correctIP");
+        String correctPort = intent.getStringExtra("correctPort");
+        if (correctIP != null) { //If a correct IP has been tested and given by ServerConfigurationActivity, Use this to pass test checks. Otherwise keep as default
+            testIP = correctIP;
+            testPort = correctPort;
+            Log.d("Connection to Flask Backend", "Correct Backend address provided: " + testIP + ":" + testPort);
+        }
+
+        testFlaskConnection(testIP, testPort);
+
+
+
+
         //Confirm OpenCV initialised properly
         if (!OpenCVLoader.initDebug()) {
             Log.e("OpenCV", "OpenCV initialization failed!");
@@ -120,7 +140,7 @@ public class MainActivity extends AppCompatActivity {
         TextView versionText = findViewById(R.id.versionText);
         versionText.setText("C.A.R.B.S CaptureTool v" + versionName);// + " (" + versionCode + ")");
 
-        testFlaskConnection();
+
 
         //Request permissions
         getPermissions();
@@ -148,13 +168,19 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    private void testFlaskConnection() {
-        String result = ServerConfigurationActivity.probeServer(defaultServerIP, defaultServerPort);
-        Log.d("Flask backend test", result);
-        if (result.contains("Error") | result.contains("Failed")) {//If cannot connect using default value
-            Intent intent = new Intent(this, ServerConfigurationActivity.class);
-            startActivity(intent);
-        }
+    private void testFlaskConnection(String ip, String port) {
+        ServerConfigurationActivity.probeServerAndWaitForResponse(ip, port, result -> {
+            Log.d("Flask backend test", result);
+            if (result.contains("Error") | result.contains("Failed") | result.contains("Timed out")) {//If cannot connect using default value
+                Intent intent = new Intent(this, ServerConfigurationActivity.class);
+                startActivity(intent);
+            }
+            else {
+                //If the address tested is correct, set as the correct address
+                correctServerIP = ip;
+                correctServerPort = port;
+            }
+        });
     }
 
     private void getPermissions() {
@@ -416,6 +442,8 @@ public class MainActivity extends AppCompatActivity {
 
         Intent intent = new Intent(this, AnalysisActivity.class);
         intent.putExtra("imagePath", imagePath);
+        intent.putExtra("correctIP", correctServerIP);
+        intent.putExtra("correctPort", correctServerPort);
 //        intent.putExtra("pointCloudPath", pointCloudPath);
 //        releaseCamera();
         startActivity(intent);

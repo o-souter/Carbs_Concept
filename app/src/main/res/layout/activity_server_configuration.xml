@@ -48,7 +48,7 @@
         android:id="@+id/btnConfigure"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Configure"
+        android:text="Attempt Connection"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -57,8 +57,8 @@
 
     <TextView
         android:id="@+id/textView2"
-        android:layout_width="336dp"
-        android:layout_height="55dp"
+        android:layout_width="359dp"
+        android:layout_height="78dp"
         android:text="Connection to flask backend is required to be configured manually. Please ensure flask server is running, and enter the following info."
         app:layout_constraintBottom_toTopOf="@+id/textView"
         app:layout_constraintEnd_toEndOf="parent"
@@ -69,6 +69,7 @@
         android:id="@+id/tvConnectTestFeedback"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:textAlignment="center"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.498"

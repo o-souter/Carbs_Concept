@@ -53,10 +53,12 @@ public class AnalysisActivity extends AppCompatActivity {
     private ImageView segmentedImgView;
     private Bitmap imageBitmap;
     private ProgressBar progressBar;
-    private String url = "http://192.168.1.168:5000";
+//    private String url = "http://192.168.1.168:5000";
     private TextView textStatus;
     private ImageButton btnBackToCamera;
     private Session arSession;
+    private String ipForBackend;
+    private String portForBackend;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -64,6 +66,9 @@ public class AnalysisActivity extends AppCompatActivity {
         setContentView(R.layout.activity_analysis);
         Intent intent = getIntent();
         imagePath = intent.getStringExtra("imagePath");
+        ipForBackend = intent.getStringExtra("correctIP");
+        portForBackend = intent.getStringExtra("correctPort");
+
 //        pointCloudPath = intent.getStringExtra("pointCloudPath");
         BitmapFactory.Options bmOptions= new BitmapFactory.Options();
         imageBitmap = rotateBitmap(BitmapFactory.decodeFile(imagePath, bmOptions), 90);
@@ -204,6 +209,7 @@ public class AnalysisActivity extends AppCompatActivity {
                 .build();
 
         //Create request itself
+        String url = "http://" + ipForBackend + ":" + portForBackend;
         Request request = new Request.Builder()
                 .url(url+"/"+"upload-image")
                 .post(requestBody)

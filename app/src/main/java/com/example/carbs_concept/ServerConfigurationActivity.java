@@ -1,5 +1,6 @@
 package com.example.carbs_concept;
 
+import android.content.Intent;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.util.Log;
@@ -29,6 +30,8 @@ public class ServerConfigurationActivity extends AppCompatActivity {
     private EditText etPort;
     private Button btnConfigure;
     private TextView tvConnectTestFeedback;
+    private String defaultIp = "192.168.1.168";
+    private String defaultPort = "5000";
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -41,7 +44,7 @@ public class ServerConfigurationActivity extends AppCompatActivity {
         btnConfigure = findViewById(R.id.btnConfigure);
         tvConnectTestFeedback = findViewById(R.id.tvConnectTestFeedback);
         btnConfigure.setOnClickListener(v -> {
-            testServerConnection();
+            testServerConnection(etIP.getText().toString(), etPort.getText().toString());
         });
 
 
@@ -52,50 +55,71 @@ public class ServerConfigurationActivity extends AppCompatActivity {
         });
     }
 
-    private void testServerConnection() {
+    private void testServerConnection(String ip, String port) {
 
         tvConnectTestFeedback.setText("Testing connection...");
-        String result = probeServer(etIP.getText().toString(), etPort.getText().toString());
-        if (result.contains("Error")) {
-            tvConnectTestFeedback.setText("Connection failed: " + result);
-        }
-        else {
-            tvConnectTestFeedback.setText(result);
-        }
+//        String result = probeServer(etIP.getText().toString(), etPort.getText().toString());
+        probeServerAndWaitForResponse(ip, port, result -> {
+            if (result.contains("Error")) {
+                runOnUiThread(() -> {
+                    tvConnectTestFeedback.setText("Connection failed: " + result);
+                    tvConnectTestFeedback.setTextColor(Color.RED);
+                });
+            }
+            else {
+                runOnUiThread(() -> {
+                    tvConnectTestFeedback.setText(result);
+                    tvConnectTestFeedback.setTextColor(Color.GREEN);
+
+                    Intent intent = new Intent(this, MainActivity.class);
+                    intent.putExtra("correctIP", ip);
+                    intent.putExtra("correctPort", port);
+                    Log.d("Connection to Flask backend", "Correct server address found at " + ip + ":" + port);
+                    startActivity(intent);
+                });
+            }
+        });
+
 
 
     }
 
-    public static String probeServer(String ip, String port) {
+    public interface ServerCallBack {
+        void onResult(String result);
+    }
+
+    public static void probeServerAndWaitForResponse(String ip, String port, ServerCallBack callBack) {
         OkHttpClient client = new OkHttpClient();
         String address = "http://" + ip + ":" + port + "/test";
         Log.d("Server Probe", "Probing server at " + address);
+
         Request request = new Request.Builder().url(address).build();
-        final String[] output = {""};
+
+//        final String[] output = {""};
         client.newCall(request).enqueue(new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
                 e.printStackTrace();
                 Log.e("OkHTTP Server Test", "Failed: " + e.getMessage());
 //                runOnUiThread(() -> output = "none");
-                output[0] = "Error: " + e.getMessage();
+                callBack.onResult("Error: " + e.getMessage());
             }
             @Override
             public void onResponse(Call call, Response response) throws IOException {
                 if (response.isSuccessful()) {
                     String response_str = response.body().string();
-                    output[0] = response_str;
-                    Log.d("OkHTTP Server Test", "Success"+ response_str);
+//                    output[0] = response_str;
+                    Log.d("OkHTTP Server Test", "Success: "+ response_str);
+                    callBack.onResult(response_str);
 //                    runOnUiThread(() -> tvConnectTestFeedback.setText(response_str));
                 }
                 else {
                     Log.e("OkHTTP Server Test", "Error: "+response.code());
 //                    runOnUiThread(() -> tvConnectTestFeedback.setText("Request Error: "+response.code()));
-                    output[0] = "Error: " + response.code();
+                    callBack.onResult("Error: " + response.code());
                 }
             }
         });
-        Log.d("probeServer", output[0]);
-        return output[0];
+
     }
 }
