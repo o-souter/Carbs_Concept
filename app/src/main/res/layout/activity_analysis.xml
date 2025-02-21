@@ -18,10 +18,23 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
+    <fragment
+        android:id="@+id/arFragment"
+        android:name="com.google.ar.sceneform.ux.ArFragment"
+        android:layout_width="130dp"
+        android:layout_height="124dp"
+        android:visibility="invisible"
+        app:layout_constraintBottom_toTopOf="@+id/rvFoodList"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.498"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/segmentedImgView"
+        app:layout_constraintVertical_bias="0.346" />
+
     <ImageView
         android:id="@+id/segmentedImgView"
-        android:layout_width="224dp"
-        android:layout_height="203dp"
+        android:layout_width="184dp"
+        android:layout_height="126dp"
         android:layout_marginTop="72dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.497"
@@ -56,9 +69,10 @@
         android:id="@+id/rvFoodList"
         android:layout_width="306dp"
         android:layout_height="198dp"
-        android:layout_marginTop="24dp"
-        app:layout_constraintTop_toBottomOf="@+id/segmentedImgView"
-        tools:layout_editor_absoluteX="52dp" />
+        android:layout_marginTop="172dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/segmentedImgView" />
 
     <TextView
         android:id="@+id/txtCarbBreakdown"

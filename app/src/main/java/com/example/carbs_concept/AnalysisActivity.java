@@ -28,9 +28,12 @@ import com.google.ar.core.Frame;
 import com.google.ar.core.PointCloud;
 import com.google.ar.core.Session;
 import com.google.ar.core.exceptions.CameraNotAvailableException;
+import com.google.ar.sceneform.ArSceneView;
+import com.google.ar.sceneform.ux.ArFragment;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.FloatBuffer;
@@ -48,6 +51,7 @@ import okhttp3.RequestBody;
 import okhttp3.Response;
 
 public class AnalysisActivity extends AppCompatActivity {
+    private static final String TAG = "AnalysisActivity";
     private String imagePath;
     private String pointCloudPath;
     private ImageView segmentedImgView;
@@ -59,6 +63,7 @@ public class AnalysisActivity extends AppCompatActivity {
     private Session arSession;
     private String ipForBackend;
     private String portForBackend;
+    private ArFragment arFragment;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -83,108 +88,106 @@ public class AnalysisActivity extends AppCompatActivity {
             startActivity(backToCamera);
         });
 
+
+//        //Set up Pointcloud capture
+//        arFragment = (ArFragment) getSupportFragmentManager().findFragmentById(R.id.arFragment);
+//
+//        if (arFragment != null) {
+////            arFragment.getArSceneView().getScene().addOnUpdateListener(frameTime -> capturePointCloud());
+//            capturePointCloud();
+//        }
+
+
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
         });
-//        textStatus.setText("Capturing point cloud. Please hold camera still!");
-//        try {
-//            arSession = new Session(this);
-//            arSession.configure(new Config(arSession));
-//        }
-//        catch (Exception e) {
-//            Log.e("ARCore", "Failed to create AR Session");
-//        }
-        //        //Confirm ARCOre setup correctly
-//        try {
-//            arSession = new Session(this);
-//        } catch (UnavailableException e) {
-//            Log.e("ARCore", "ARCore session could not be created", e);
-//        }
-//        String pointCloudPath = getPointCloudFile();
-//        File pointCloudFile = new File(pointCloudPath);
-//        if (!pointCloudFile.exists()) {
-//            textStatus.setText("Unable to capture point cloud file");
-//            textStatus.setTextColor(Color.RED);
-//        }
-//        else {
-//
-//        }
         textStatus.setText("Configuring Connection with flask backend...");
         uploadImage(imagePath, pointCloudPath);
 
     }
+    @Override
+    protected void onPause() {
+        super.onPause();
+        if (arFragment != null && arFragment.getArSceneView() != null) {
+            arFragment.getArSceneView().pause();
+        }
+    }
 
-//    @Override
-//    protected void onResume() {
-//        super.onResume();
-//        if (arSession != null) {
-//            try {
-//                arSession.resume();
-//            } catch (CameraNotAvailableException e) {
-//                Log.e("ARCore", "Camera not available");;
-//            }
-//        }
-//    }
-//
-//    @Override
-//    protected void onPause() {
-//        super.onPause();
-//        if (arSession != null) {
-//            arSession.pause();
-//        }
-//    }
-    private String getPointCloudFile() {
-        if (arSession != null) {
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (arFragment != null && arFragment.getArSceneView() != null) {
             try {
-                arSession.resume();
-                if (arSession == null) {
-                    Log.e("ARCore", "Session is null");
-                } else {
-                    Log.d("ARCore", "Session is active, updating frame...");
-                }
-                Frame frame = arSession.update();
-                PointCloud pointCloud = frame.acquirePointCloud();
-                String filePath = savePointCloudToFile(pointCloud);
-                pointCloud.release();
-                return filePath;
-            } catch (Exception e) {
-                Log.e("ARCore", "Error getting point cloud", e);
-                textStatus.setText("Error capturing point cloud");
-                textStatus.setTextColor(Color.RED);
-                if (arSession == null) {
-                    Log.e("ARCore", "Session is null");
-                }
-                return null;
+                arFragment.getArSceneView().resume();
+            } catch (CameraNotAvailableException e) {
+                throw new RuntimeException(e);
             }
         }
-        return null;
+    }
+    private void capturePointCloud() {
+        if (arFragment == null || arFragment.getArSceneView() == null) {
+            Log.e(TAG, "ArFragment or SceneView is null");
+            return;
+        }
+
+        ArSceneView sceneView = arFragment.getArSceneView();
+        if (sceneView.getSession() == null) {
+            Log.e(TAG, "ARCore session is not initialized yet.");
+            return;
+        }
+
+        Frame frame = sceneView.getArFrame();
+        if (frame == null) {
+            Log.e(TAG, "Frame is null, ARCore may not be tracking yet.");
+            return;
+        }
+
+        PointCloud pointCloud = frame.acquirePointCloud();
+        if (pointCloud == null) {
+            Log.e(TAG, "No PointCloud data available.");
+            return;
+        }
+
+        FloatBuffer buffer = pointCloud.getPoints();
+        if (buffer == null || buffer.remaining() < 4) {
+            Log.e(TAG, "Point cloud is empty, skipping save.");
+            pointCloud.release();
+            return;
+        }
+
+        savePointCloudToFile(pointCloud);
+        pointCloud.release();
     }
 
-    private String savePointCloudToFile(PointCloud pointCloud) {
-        File file = new File(getFilesDir(), "pointcloud.txt"); // Internal storage
 
-        try (FileWriter writer = new FileWriter(file, true)) {
-            FloatBuffer points = pointCloud.getPoints();
-            while (points.hasRemaining()) {
-                float x = points.get();       // X coordinate
-                float y = points.get();       // Y coordinate
-                float z = points.get();       // Z coordinate
-                float confidence = points.get(); // Confidence value
+    private void savePointCloudToFile(PointCloud pointCloud) {
+        FloatBuffer buffer = pointCloud.getPoints();
+        StringBuilder sb = new StringBuilder();
 
-                writer.write(x + "," + y + "," + z + "," + confidence + "\n");
-                return file.getAbsolutePath();
-            }
-            Log.d("ARCore", "Point cloud saved: " + file.getAbsolutePath());
+        while (buffer.hasRemaining()) {
+            float x = buffer.get();
+            float y = buffer.get();
+            float z = buffer.get();
+            float confidence = buffer.get();
+
+            sb.append(x).append(",").append(y).append(",").append(z).append(",").append(confidence).append("\n");
+        }
+
+        if (sb.length() == 0) {
+            Log.e(TAG, "Skipping save: Point cloud is empty.");
+            return;
+        }
+
+        File file = new File(getFilesDir(), "pointcloud.txt");
+        try (FileOutputStream fos = new FileOutputStream(file, true)) { // 'true' enables appending
+            fos.write(sb.toString().getBytes());
+            Log.d(TAG, "Point cloud saved internally at: " + file.getAbsolutePath());
         } catch (IOException e) {
-            Log.e("ARCore", "Error saving point cloud", e);
-            return null;
+            Log.e(TAG, "Error saving point cloud internally", e);
         }
-        return null;
     }
-
-
 
     private void uploadImage(String imagePath, String pointCloudPath) {
         OkHttpClient client = new OkHttpClient();

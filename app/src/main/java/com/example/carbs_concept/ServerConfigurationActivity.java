@@ -94,6 +94,7 @@ public class ServerConfigurationActivity extends AppCompatActivity {
         void onResult(String result);
     }
 
+
     public static void probeServerAndWaitForResponse(String ip, String port, ServerCallBack callBack) {
         OkHttpClient client = new OkHttpClient();
         String address = "http://" + ip + ":" + port + "/test";
