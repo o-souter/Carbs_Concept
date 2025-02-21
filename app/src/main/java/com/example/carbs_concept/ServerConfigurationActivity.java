@@ -58,6 +58,12 @@ public class ServerConfigurationActivity extends AppCompatActivity {
     private void testServerConnection(String ip, String port) {
 
         tvConnectTestFeedback.setText("Testing connection...");
+        if (ip == "") {
+            tvConnectTestFeedback.setText("Error: Invalid server address");
+            tvConnectTestFeedback.setTextColor(Color.RED);
+            return;
+        }
+
 //        String result = probeServer(etIP.getText().toString(), etPort.getText().toString());
         probeServerAndWaitForResponse(ip, port, result -> {
             if (result.contains("Error")) {
@@ -92,8 +98,15 @@ public class ServerConfigurationActivity extends AppCompatActivity {
         OkHttpClient client = new OkHttpClient();
         String address = "http://" + ip + ":" + port + "/test";
         Log.d("Server Probe", "Probing server at " + address);
+        Request request;
+        try {
+            request = new Request.Builder().url(address).build();
+        }
+        catch (java.lang.IllegalArgumentException e) {
 
-        Request request = new Request.Builder().url(address).build();
+            return;
+        }
+
 
 //        final String[] output = {""};
         client.newCall(request).enqueue(new Callback() {
