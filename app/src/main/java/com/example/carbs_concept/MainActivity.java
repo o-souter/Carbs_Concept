@@ -96,6 +96,10 @@ public class MainActivity extends AppCompatActivity {
     private String correctServerPort;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+//        Intent intentA = new Intent(this, PointCloudCaptureActivity.class);
+//        startActivity(intentA);
+
+
         super.onCreate(savedInstanceState);
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_main);
@@ -160,7 +164,7 @@ public class MainActivity extends AppCompatActivity {
         //Test connection to flask backend
 
 
-        //Set up the GUI
+//        //Set up the GUI
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
@@ -288,7 +292,7 @@ public class MainActivity extends AppCompatActivity {
                 runOnUiThread(() -> {
                     detectionFeedback.setText("No fiducial marker detected.");
                     detectionFeedback.setTextColor(getResources().getColor(android.R.color.holo_red_light));
-                    captureButton.setEnabled(false);
+//                    captureButton.setEnabled(false);
 
                 });
             }
@@ -440,7 +444,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void processImage(String imagePath){//, String pointCloudPath) {
 
-        Intent intent = new Intent(this, AnalysisActivity.class);
+        Intent intent = new Intent(this, PointCloudCaptureActivity.class);
         intent.putExtra("imagePath", imagePath);
         intent.putExtra("correctIP", correctServerIP);
         intent.putExtra("correctPort", correctServerPort);

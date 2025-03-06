@@ -7,42 +7,27 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Matrix;
 import android.os.Bundle;
-import android.util.Base64;
 import android.util.Log;
 import android.view.View;
-import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import androidx.activity.EdgeToEdge;
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
-import com.google.ar.core.Config;
-import com.google.ar.core.Frame;
-import com.google.ar.core.PointCloud;
 import com.google.ar.core.Session;
-import com.google.ar.core.exceptions.CameraNotAvailableException;
-import com.google.ar.sceneform.ArSceneView;
 import com.google.ar.sceneform.ux.ArFragment;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileOutputStream;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.nio.FloatBuffer;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 import okhttp3.Call;
 import okhttp3.Callback;
-import okhttp3.FormBody;
 import okhttp3.MediaType;
 import okhttp3.MultipartBody;
 import okhttp3.OkHttpClient;
@@ -71,6 +56,7 @@ public class AnalysisActivity extends AppCompatActivity {
         setContentView(R.layout.activity_analysis);
         Intent intent = getIntent();
         imagePath = intent.getStringExtra("imagePath");
+        pointCloudPath = intent.getStringExtra("pointCloudPath");
         ipForBackend = intent.getStringExtra("correctIP");
         portForBackend = intent.getStringExtra("correctPort");
 
@@ -104,117 +90,117 @@ public class AnalysisActivity extends AppCompatActivity {
             return insets;
         });
         textStatus.setText("Configuring Connection with flask backend...");
-        uploadImage(imagePath, pointCloudPath);
+        uploadData(imagePath, pointCloudPath);
 
     }
-    @Override
-    protected void onPause() {
-        super.onPause();
-        if (arFragment != null && arFragment.getArSceneView() != null) {
-            arFragment.getArSceneView().pause();
-        }
-    }
+//    @Override
+//    protected void onPause() {
+//        super.onPause();
+//        if (arFragment != null && arFragment.getArSceneView() != null) {
+//            arFragment.getArSceneView().pause();
+//        }
+//    }
+//
+//    @Override
+//    protected void onResume() {
+//        super.onResume();
+//        if (arFragment != null && arFragment.getArSceneView() != null) {
+//            try {
+//                arFragment.getArSceneView().resume();
+//            } catch (CameraNotAvailableException e) {
+//                throw new RuntimeException(e);
+//            }
+//        }
+//    }
+//    private void capturePointCloud() {
+//        if (arFragment == null || arFragment.getArSceneView() == null) {
+//            Log.e(TAG, "ArFragment or SceneView is null");
+//            return;
+//        }
+//
+//        ArSceneView sceneView = arFragment.getArSceneView();
+//        if (sceneView.getSession() == null) {
+//            Log.e(TAG, "ARCore session is not initialized yet.");
+//            return;
+//        }
+//
+//        Frame frame = sceneView.getArFrame();
+//        if (frame == null) {
+//            Log.e(TAG, "Frame is null, ARCore may not be tracking yet.");
+//            return;
+//        }
+//
+//        PointCloud pointCloud = frame.acquirePointCloud();
+//        if (pointCloud == null) {
+//            Log.e(TAG, "No PointCloud data available.");
+//            return;
+//        }
+//
+//        FloatBuffer buffer = pointCloud.getPoints();
+//        if (buffer == null || buffer.remaining() < 4) {
+//            Log.e(TAG, "Point cloud is empty, skipping save.");
+//            pointCloud.release();
+//            return;
+//        }
+//
+//        savePointCloudToFile(pointCloud);
+//        pointCloud.release();
+//    }
 
-    @Override
-    protected void onResume() {
-        super.onResume();
-        if (arFragment != null && arFragment.getArSceneView() != null) {
-            try {
-                arFragment.getArSceneView().resume();
-            } catch (CameraNotAvailableException e) {
-                throw new RuntimeException(e);
-            }
-        }
-    }
-    private void capturePointCloud() {
-        if (arFragment == null || arFragment.getArSceneView() == null) {
-            Log.e(TAG, "ArFragment or SceneView is null");
-            return;
-        }
 
-        ArSceneView sceneView = arFragment.getArSceneView();
-        if (sceneView.getSession() == null) {
-            Log.e(TAG, "ARCore session is not initialized yet.");
-            return;
-        }
+//    private void savePointCloudToFile(PointCloud pointCloud) {
+//        FloatBuffer buffer = pointCloud.getPoints();
+//        StringBuilder sb = new StringBuilder();
+//
+//        while (buffer.hasRemaining()) {
+//            float x = buffer.get();
+//            float y = buffer.get();
+//            float z = buffer.get();
+//            float confidence = buffer.get();
+//
+//            sb.append(x).append(",").append(y).append(",").append(z).append(",").append(confidence).append("\n");
+//        }
+//
+//        if (sb.length() == 0) {
+//            Log.e(TAG, "Skipping save: Point cloud is empty.");
+//            return;
+//        }
+//
+//        File file = new File(getFilesDir(), "pointcloud.txt");
+//        try (FileOutputStream fos = new FileOutputStream(file, true)) { // 'true' enables appending
+//            fos.write(sb.toString().getBytes());
+//            Log.d(TAG, "Point cloud saved internally at: " + file.getAbsolutePath());
+//        } catch (IOException e) {
+//            Log.e(TAG, "Error saving point cloud internally", e);
+//        }
+//    }
 
-        Frame frame = sceneView.getArFrame();
-        if (frame == null) {
-            Log.e(TAG, "Frame is null, ARCore may not be tracking yet.");
-            return;
-        }
-
-        PointCloud pointCloud = frame.acquirePointCloud();
-        if (pointCloud == null) {
-            Log.e(TAG, "No PointCloud data available.");
-            return;
-        }
-
-        FloatBuffer buffer = pointCloud.getPoints();
-        if (buffer == null || buffer.remaining() < 4) {
-            Log.e(TAG, "Point cloud is empty, skipping save.");
-            pointCloud.release();
-            return;
-        }
-
-        savePointCloudToFile(pointCloud);
-        pointCloud.release();
-    }
-
-
-    private void savePointCloudToFile(PointCloud pointCloud) {
-        FloatBuffer buffer = pointCloud.getPoints();
-        StringBuilder sb = new StringBuilder();
-
-        while (buffer.hasRemaining()) {
-            float x = buffer.get();
-            float y = buffer.get();
-            float z = buffer.get();
-            float confidence = buffer.get();
-
-            sb.append(x).append(",").append(y).append(",").append(z).append(",").append(confidence).append("\n");
-        }
-
-        if (sb.length() == 0) {
-            Log.e(TAG, "Skipping save: Point cloud is empty.");
-            return;
-        }
-
-        File file = new File(getFilesDir(), "pointcloud.txt");
-        try (FileOutputStream fos = new FileOutputStream(file, true)) { // 'true' enables appending
-            fos.write(sb.toString().getBytes());
-            Log.d(TAG, "Point cloud saved internally at: " + file.getAbsolutePath());
-        } catch (IOException e) {
-            Log.e(TAG, "Error saving point cloud internally", e);
-        }
-    }
-
-    private void uploadImage(String imagePath, String pointCloudPath) {
+    private void uploadData(String imagePath, String pointCloudPath) {
         OkHttpClient client = new OkHttpClient();
 
         File imageFile = new File(imagePath);
-//        File pointCloudFile = new File(pointCloudPath);
-//        if (!imageFile.exists() | !pointCloudFile.exists()) {
-//            Log.e("OkHTTP Image Upload", "Files for upload not found.");
-//            textStatus.setText("Unable to find file:\n" +
-//                    "Image exists: " + imageFile.exists() + "\n" +
-//                    "PointCloud exists: " + pointCloudFile.exists());
-//            textStatus.setTextColor(Color.RED);
-//            return;
-//        }
+        File pointCloudFile = new File(pointCloudPath);
+        if (!imageFile.exists() | !pointCloudFile.exists()) {
+            Log.e("OkHTTP Image Upload", "Files for upload not found.");
+            textStatus.setText("Unable to find file:\n" +
+                    "Image exists: " + imageFile.exists() + "\n" +
+                    "PointCloud exists: " + pointCloudFile.exists());
+            textStatus.setTextColor(Color.RED);
+            return;
+        }
         //Create request body
         RequestBody requestBody = new MultipartBody.Builder()
                 .setType(MultipartBody.FORM)
                 .addFormDataPart("image", imageFile.getName(),
                         RequestBody.create(imageFile, MediaType.parse("image/jpeg")))
-//                .addFormDataPart("pointcloud", pointCloudFile.getName(),
-//                        RequestBody.create(pointCloudFile, MediaType.parse("text/plain")))
+                .addFormDataPart("pointcloud", pointCloudFile.getName(),
+                        RequestBody.create(pointCloudFile, MediaType.parse("text/plain")))
                 .build();
 
         //Create request itself
         String url = "http://" + ipForBackend + ":" + portForBackend;
         Request request = new Request.Builder()
-                .url(url+"/"+"upload-image")
+                .url(url+"/"+"upload-data")
                 .post(requestBody)
                 .build();
 
