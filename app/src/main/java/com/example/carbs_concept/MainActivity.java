@@ -86,20 +86,14 @@ public class MainActivity extends AppCompatActivity {
     private ArucoDetector arucoDetector;
     private TextView detectionFeedback;
     private ImageView liveImageView;
-    private String capturedImagePath;
-    private Session arSession;
-    private Button btnBackToCamera;
     private ProcessCameraProvider cameraProvider;
     private String defaultServerIP = "192.168.1.168";
     private String defaultServerPort = "5000";
     private String correctServerIP;
     private String correctServerPort;
+    private Boolean backendFound;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-//        Intent intentA = new Intent(this, PointCloudCaptureActivity.class);
-//        startActivity(intentA);
-
-
         super.onCreate(savedInstanceState);
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_main);
@@ -115,11 +109,8 @@ public class MainActivity extends AppCompatActivity {
             testPort = correctPort;
             Log.d("Connection to Flask Backend", "Correct Backend address provided: " + testIP + ":" + testPort);
         }
-
-        testFlaskConnection(testIP, testPort);
-
-
-
+        backendFound = false;
+        testFlaskConnection(testIP, testPort); //Test connection with backend and handle accordingly
 
         //Confirm OpenCV initialised properly
         if (!OpenCVLoader.initDebug()) {
@@ -129,23 +120,10 @@ public class MainActivity extends AppCompatActivity {
         }
         Log.d("OpenCV Version", Core.VERSION);
 
-
-//        //Confirm ARCOre setup correctly
-//        try {
-//            arSession = new Session(this);
-//        } catch (UnavailableException e) {
-//            Log.e("ARCore", "ARCore session could not be created", e);
-//        }
-
         //Set up versioning
         String versionName = BuildConfig.APP_VERSION_NAME;
-        int versionCode = BuildConfig.APP_VERSION_CODE;
-
         TextView versionText = findViewById(R.id.versionText);
         versionText.setText("C.A.R.B.S CaptureTool v" + versionName);// + " (" + versionCode + ")");
-
-
-
         //Request permissions
         getPermissions();
         //Setup widgets
@@ -153,7 +131,6 @@ public class MainActivity extends AppCompatActivity {
         captureButton.setOnClickListener(v -> {
             if (imageCapture != null) {
                 captureImage();
-//                processImage(capturedImagePath);
             }
         });
         liveImageView = findViewById(R.id.liveImageView);
@@ -161,10 +138,7 @@ public class MainActivity extends AppCompatActivity {
         initializeCamera();
         detectionFeedback = findViewById((R.id.detectionFeedback));
 
-        //Test connection to flask backend
-
-
-//        //Set up the GUI
+        //Set up the GUI
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
@@ -176,13 +150,16 @@ public class MainActivity extends AppCompatActivity {
         ServerConfigurationActivity.probeServerAndWaitForResponse(ip, port, result -> {
             Log.d("Flask backend test", result);
             if (result.contains("Error") | result.contains("Failed") | result.contains("Timed out")) {//If cannot connect using default value
+                backendFound = false;
                 Intent intent = new Intent(this, ServerConfigurationActivity.class);
                 startActivity(intent);
+
             }
             else {
                 //If the address tested is correct, set as the correct address
                 correctServerIP = ip;
                 correctServerPort = port;
+                backendFound = true;
             }
         });
     }
@@ -197,9 +174,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void initializeArucoDetector() {
         Dictionary dictionary = Objdetect.getPredefinedDictionary(Objdetect.DICT_4X4_50);
-
         DetectorParameters params = new DetectorParameters();
-
         arucoDetector = new ArucoDetector(dictionary, params);
     }
 
@@ -283,9 +258,20 @@ public class MainActivity extends AppCompatActivity {
                 }
 
                 runOnUiThread(() -> {
-                    detectionFeedback.setText(markerIds.rows() + " Fiducial marker(s) detected. Take picture when ready!");
+                    detectionFeedback.setText(markerIds.rows() + " Fiducial marker(s) detected.");
                     detectionFeedback.setTextColor(getResources().getColor(android.R.color.holo_green_dark));
-                    captureButton.setEnabled(true);
+
+                    if (backendFound) {
+                        captureButton.setEnabled(true);
+                        captureButton.setText("Capture");
+                    }
+                    else {
+                        captureButton.setEnabled(false);
+                        captureButton.setText("Awaiting connection to backend...");
+                    }
+
+
+
                 });
             }
             else {
@@ -293,6 +279,14 @@ public class MainActivity extends AppCompatActivity {
                     detectionFeedback.setText("No fiducial marker detected.");
                     detectionFeedback.setTextColor(getResources().getColor(android.R.color.holo_red_light));
 //                    captureButton.setEnabled(false);
+                    if (backendFound) {
+                        captureButton.setEnabled(true);
+                        captureButton.setText("Capture");
+                    }
+                    else {
+                        captureButton.setEnabled(false);
+                        captureButton.setText("Awaiting connection to backend...");
+                    }
 
                 });
             }
@@ -350,7 +344,7 @@ public class MainActivity extends AppCompatActivity {
         Mat rgb = new Mat();
         Imgproc.cvtColor(yuv, rgb, Imgproc.COLOR_YUV2RGB_NV21);
 
-        // Release the YUV Mat (optional but good practice)
+        // Release the YUV Mat
         yuv.release();
 
         return rgb;
@@ -358,7 +352,6 @@ public class MainActivity extends AppCompatActivity {
 
     private void captureImage() {
         File file = new File(getFilesDir(), "captured_image.jpg");
-//        File pointCloudFile = new File(getFilesDir(), "point_cloud.txt");
         ImageCapture.OutputFileOptions options = new ImageCapture.OutputFileOptions.Builder(file).build();
 
         imageCapture.takePicture(
@@ -368,22 +361,7 @@ public class MainActivity extends AppCompatActivity {
                     @Override
                     public void onImageSaved(@NonNull ImageCapture.OutputFileResults outputFileResults) {
                         Log.d("CameraX", "Image saved: " + file.getAbsolutePath());
-
-                        // Create a CountDownLatch to block the main thread until point cloud capture is complete
-//                        CountDownLatch latch = new CountDownLatch(1);
-
-                        // Capture point cloud asynchronously
-//                        capturePointCloud(pointCloudFile, latch);
-
-//                        try {
-//                            // Wait for point cloud capture to finish before continuing
-//                            latch.await();
-//                        } catch (InterruptedException e) {
-//                            Log.e("ARCore", "Error waiting for point cloud capture:", e);
-//                        }
-
-                        // Now process both the image and the point cloud
-                        processImage(file.getAbsolutePath());//, pointCloudFile.getAbsolutePath());
+                        processImage(file.getAbsolutePath());
 
                     }
 
@@ -393,53 +371,6 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }
         );
-
-//
-    }
-
-    private void capturePointCloud(File file, CountDownLatch latch) {
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    if (arSession != null) {
-                        // Ensure the AR session is resumed and updating in the correct thread
-                        if (arSession.getConfig().getUpdateMode() == Config.UpdateMode.BLOCKING) {
-                            arSession.resume(); // Resume session if paused
-                        }
-
-                        // Set the update mode to LATEST_CAMERA_IMAGE
-                        Config config = arSession.getConfig();
-                        config.setUpdateMode(Config.UpdateMode.LATEST_CAMERA_IMAGE);
-                        arSession.configure(config);
-
-                        // Capture the point cloud
-                        Frame frame = arSession.update();
-                        PointCloud pointCloud = frame.acquirePointCloud();
-
-                        FloatBuffer buffer = pointCloud.getPoints();
-                        FileOutputStream fos = new FileOutputStream(file);
-
-                        while (buffer.hasRemaining()) {
-                            float x = buffer.get();
-                            float y = buffer.get();
-                            float z = buffer.get();
-                            float confidence = buffer.get();
-                            String pointData = x + "," + y + "," + z + "," + confidence + "\n";
-                            fos.write(pointData.getBytes());
-                        }
-
-                        fos.close();
-                        pointCloud.release();
-                        Log.d("ARCore", "Point cloud saved: " + file.getAbsolutePath());
-                    } else {
-                        Log.e("ARCore", "AR session is null.");
-                    }
-                } catch (Exception e) {
-                    Log.e("ARCore", "Error saving point cloud:", e);
-                }
-            }
-        });
     }
 
     private void processImage(String imagePath){//, String pointCloudPath) {
@@ -448,26 +379,8 @@ public class MainActivity extends AppCompatActivity {
         intent.putExtra("imagePath", imagePath);
         intent.putExtra("correctIP", correctServerIP);
         intent.putExtra("correctPort", correctServerPort);
-//        intent.putExtra("pointCloudPath", pointCloudPath);
-//        releaseCamera();
         startActivity(intent);
     }
 
-    private void calculateScale(List<Mat> markerCorners) {
-        //Calculate the scale using the corners of the aruco marker
-        Mat firstMarker = markerCorners.get(0);
 
-//        Log.d("ARUco", "Scale: Rows: "+firstMarker.rows() + " Cols: "+firstMarker.cols());
-
-        double[] point1 = firstMarker.get(0,0); //Top left
-        double[] point2 = firstMarker.get(1, 0); //Top right
-
-        double pixelWidth = Math.sqrt(Math.pow(point1[0] - point2[0], 2)  //X Diff
-                + Math.pow(point1[1] - point2[1], 2));                    //Y Diff
-
-        double expectedMarkerWidth = 53.0;
-
-        double scale = expectedMarkerWidth / pixelWidth;
-//        Log.d("ARUco", "Scale (mm per pixel): " + scale);
-    }
 }

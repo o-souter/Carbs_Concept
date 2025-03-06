@@ -48,8 +48,8 @@
 
     <Button
         android:id="@+id/captureButton"
-        android:layout_width="145dp"
-        android:layout_height="70dp"
+        android:layout_width="276dp"
+        android:layout_height="73dp"
         android:layout_marginBottom="16dp"
         android:text="Capture"
         app:layout_constraintBottom_toBottomOf="parent"

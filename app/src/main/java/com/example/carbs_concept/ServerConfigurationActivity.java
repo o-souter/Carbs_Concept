@@ -23,15 +23,11 @@ import okhttp3.Request;
 import okhttp3.Response;
 
 public class ServerConfigurationActivity extends AppCompatActivity {
-    private String ip;
-    private String port;
-    private String address;
     private EditText etIP;
     private EditText etPort;
     private Button btnConfigure;
     private TextView tvConnectTestFeedback;
-    private String defaultIp = "192.168.1.168";
-    private String defaultPort = "5000";
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -64,7 +60,6 @@ public class ServerConfigurationActivity extends AppCompatActivity {
             return;
         }
 
-//        String result = probeServer(etIP.getText().toString(), etPort.getText().toString());
         probeServerAndWaitForResponse(ip, port, result -> {
             if (result.contains("Error")) {
                 runOnUiThread(() -> {
@@ -109,27 +104,22 @@ public class ServerConfigurationActivity extends AppCompatActivity {
         }
 
 
-//        final String[] output = {""};
         client.newCall(request).enqueue(new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
                 e.printStackTrace();
                 Log.e("OkHTTP Server Test", "Failed: " + e.getMessage());
-//                runOnUiThread(() -> output = "none");
                 callBack.onResult("Error: " + e.getMessage());
             }
             @Override
             public void onResponse(Call call, Response response) throws IOException {
                 if (response.isSuccessful()) {
                     String response_str = response.body().string();
-//                    output[0] = response_str;
                     Log.d("OkHTTP Server Test", "Success: "+ response_str);
                     callBack.onResult(response_str);
-//                    runOnUiThread(() -> tvConnectTestFeedback.setText(response_str));
                 }
                 else {
                     Log.e("OkHTTP Server Test", "Error: "+response.code());
-//                    runOnUiThread(() -> tvConnectTestFeedback.setText("Request Error: "+response.code()));
                     callBack.onResult("Error: " + response.code());
                 }
             }

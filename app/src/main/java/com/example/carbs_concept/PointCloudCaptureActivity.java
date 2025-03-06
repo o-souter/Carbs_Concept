@@ -33,15 +33,12 @@ public class PointCloudCaptureActivity extends AppCompatActivity {
     private int retryCount = 0;
     private final Handler handler = new Handler(Looper.getMainLooper());
     private boolean isCapturing = false;
-    private static final int CAPTURE_DURATION_MS = 15000; // Collect for 5 seconds
-    private long startTime;
     private Button btnStartCapture;
     private static final long CAPTURE_TIMEOUT_MS = 15000;  // Duration in milliseconds to wait for a suitable point cloud (adjust as needed)
     private static final int MIN_POINTS_THRESHOLD = 10000;  // Minimum number of points to consider the capture as "suitable"
     private long captureStartTime = 0;  // Tracks when capture started
     private int capturedPointCount = 0;  // Tracks number of captured points
     private StringBuilder allPointData = new StringBuilder();  // StringBuilder to accumulate points data
-    private int pointsCaptured;
 
     //Data imported from image capture
     private String imagePath;
@@ -68,7 +65,6 @@ public class PointCloudCaptureActivity extends AppCompatActivity {
         // Listen for frame updates to capture points
         arFragment.getArSceneView().getScene().addOnUpdateListener(frameTime -> {
             if (captureStartTime != 0) {
-                pointsCaptured = 0;
                 capturePointCloud(arFragment.getArSceneView().getArFrame());
             }
         });
@@ -99,7 +95,6 @@ public class PointCloudCaptureActivity extends AppCompatActivity {
 
         if (frame != null) {
             if (!isCapturing) {
-                startTime = System.currentTimeMillis();
                 isCapturing = true;
             }
             capturePointCloud(frame);
@@ -144,46 +139,6 @@ public class PointCloudCaptureActivity extends AppCompatActivity {
             Log.d("PointCloud", "Captured " + capturedPointCount + " points.");
             stopCapture();  // Stop the capture
         }
-
-
-
-//        // Check if the point cloud has data
-//        if (points.remaining() > 0) {
-//            // Create a StringBuilder to accumulate point data
-//            StringBuilder pointData = new StringBuilder();
-//
-//            // Iterate through the FloatBuffer and extract point coordinates
-//            while (points.hasRemaining()) {
-//                float x = points.get();
-//                float y = points.get();
-//                float z = points.get();
-//                float confidence = points.get(); // Optional: use if needed
-//
-//                // Append the point data to the StringBuilder
-//                pointData.append(x).append(" ").append(y).append(" ").append(z).append("\n");
-//            }
-//
-//            // Write the accumulated point data to the file
-//            try (FileWriter writer = new FileWriter(new File(getFilesDir(), "point_cloud.xyz"))) {
-//                writer.write(pointData.toString());
-//                Log.d("PointCloud", "Point cloud data saved successfully to " + getFilesDir() + "/point_cloud.xyz");
-//            } catch (IOException e) {
-//                Log.e("PointCloud", "Error writing point cloud data to file.", e);
-//            }
-//        } else {
-//            Log.w("PointCloud", "No point cloud data available.");
-//
-//            handleRetry(frame, "No point cloud data available.");
-//        }
-//        // Stop capturing after the specified duration
-//        if (System.currentTimeMillis() - startTime >= CAPTURE_DURATION_MS) {
-//            isCapturing = false;
-//            Log.d("PointCloud", "Capture duration complete. Stopping.");
-//        } else {
-//            Log.d("PointCloud", "Continuing to capture...");
-//        }
-//        // Release the point cloud to free resources
-//        pointCloud.release();
 
     }
 
