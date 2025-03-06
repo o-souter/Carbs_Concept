@@ -19,12 +19,16 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.ar.core.Session;
 import com.google.ar.sceneform.ux.ArFragment;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 import okhttp3.Call;
 import okhttp3.Callback;
@@ -42,13 +46,14 @@ public class AnalysisActivity extends AppCompatActivity {
     private ImageView segmentedImgView;
     private Bitmap imageBitmap;
     private ProgressBar progressBar;
-//    private String url = "http://192.168.1.168:5000";
     private TextView textStatus;
     private ImageButton btnBackToCamera;
-    private Session arSession;
     private String ipForBackend;
     private String portForBackend;
-    private ArFragment arFragment;
+
+    private RecyclerView rvFoodList;
+    private FoodAdapter foodAdapter;
+    private List<IndividualFoodItem> foodItems;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -60,7 +65,6 @@ public class AnalysisActivity extends AppCompatActivity {
         ipForBackend = intent.getStringExtra("correctIP");
         portForBackend = intent.getStringExtra("correctPort");
 
-//        pointCloudPath = intent.getStringExtra("pointCloudPath");
         BitmapFactory.Options bmOptions= new BitmapFactory.Options();
         imageBitmap = rotateBitmap(BitmapFactory.decodeFile(imagePath, bmOptions), 90);
         segmentedImgView = findViewById(R.id.segmentedImgView);
@@ -68,20 +72,13 @@ public class AnalysisActivity extends AppCompatActivity {
         progressBar.setVisibility(View.INVISIBLE);
         textStatus = findViewById(R.id.textStatus);
         btnBackToCamera = findViewById(R.id.btnBackToCamera);
-
+        rvFoodList = findViewById(R.id.rvFoodList);
+        rvFoodList.setLayoutManager(new LinearLayoutManager(this));
         btnBackToCamera.setOnClickListener(v -> {
             Intent backToCamera = new Intent(this, MainActivity.class);
             startActivity(backToCamera);
         });
 
-
-//        //Set up Pointcloud capture
-//        arFragment = (ArFragment) getSupportFragmentManager().findFragmentById(R.id.arFragment);
-//
-//        if (arFragment != null) {
-////            arFragment.getArSceneView().getScene().addOnUpdateListener(frameTime -> capturePointCloud());
-//            capturePointCloud();
-//        }
 
 
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
@@ -93,87 +90,7 @@ public class AnalysisActivity extends AppCompatActivity {
         uploadData(imagePath, pointCloudPath);
 
     }
-//    @Override
-//    protected void onPause() {
-//        super.onPause();
-//        if (arFragment != null && arFragment.getArSceneView() != null) {
-//            arFragment.getArSceneView().pause();
-//        }
-//    }
-//
-//    @Override
-//    protected void onResume() {
-//        super.onResume();
-//        if (arFragment != null && arFragment.getArSceneView() != null) {
-//            try {
-//                arFragment.getArSceneView().resume();
-//            } catch (CameraNotAvailableException e) {
-//                throw new RuntimeException(e);
-//            }
-//        }
-//    }
-//    private void capturePointCloud() {
-//        if (arFragment == null || arFragment.getArSceneView() == null) {
-//            Log.e(TAG, "ArFragment or SceneView is null");
-//            return;
-//        }
-//
-//        ArSceneView sceneView = arFragment.getArSceneView();
-//        if (sceneView.getSession() == null) {
-//            Log.e(TAG, "ARCore session is not initialized yet.");
-//            return;
-//        }
-//
-//        Frame frame = sceneView.getArFrame();
-//        if (frame == null) {
-//            Log.e(TAG, "Frame is null, ARCore may not be tracking yet.");
-//            return;
-//        }
-//
-//        PointCloud pointCloud = frame.acquirePointCloud();
-//        if (pointCloud == null) {
-//            Log.e(TAG, "No PointCloud data available.");
-//            return;
-//        }
-//
-//        FloatBuffer buffer = pointCloud.getPoints();
-//        if (buffer == null || buffer.remaining() < 4) {
-//            Log.e(TAG, "Point cloud is empty, skipping save.");
-//            pointCloud.release();
-//            return;
-//        }
-//
-//        savePointCloudToFile(pointCloud);
-//        pointCloud.release();
-//    }
 
-
-//    private void savePointCloudToFile(PointCloud pointCloud) {
-//        FloatBuffer buffer = pointCloud.getPoints();
-//        StringBuilder sb = new StringBuilder();
-//
-//        while (buffer.hasRemaining()) {
-//            float x = buffer.get();
-//            float y = buffer.get();
-//            float z = buffer.get();
-//            float confidence = buffer.get();
-//
-//            sb.append(x).append(",").append(y).append(",").append(z).append(",").append(confidence).append("\n");
-//        }
-//
-//        if (sb.length() == 0) {
-//            Log.e(TAG, "Skipping save: Point cloud is empty.");
-//            return;
-//        }
-//
-//        File file = new File(getFilesDir(), "pointcloud.txt");
-//        try (FileOutputStream fos = new FileOutputStream(file, true)) { // 'true' enables appending
-//            fos.write(sb.toString().getBytes());
-//            Log.d(TAG, "Point cloud saved internally at: " + file.getAbsolutePath());
-//        } catch (IOException e) {
-//            Log.e(TAG, "Error saving point cloud internally", e);
-//        }
-//    }
 
     private void uploadData(String imagePath, String pointCloudPath) {
         OkHttpClient client = new OkHttpClient();
@@ -222,6 +139,7 @@ public class AnalysisActivity extends AppCompatActivity {
 
                     runOnUiThread(() -> textStatus.setText(response_str));
                     runOnUiThread(() -> textStatus.setTextColor(Color.GREEN));
+                    runOnUiThread(() -> processAnalysisResponse());
                 }
                 else {
                     Log.e("OkHTTP Image Upload", "Error: "+response.code());
@@ -229,6 +147,28 @@ public class AnalysisActivity extends AppCompatActivity {
                 }
             }
         });
+    }
+
+
+    private void processAnalysisResponse() {
+        //Check if a previous response file exists
+        File response_folder = new File(getFilesDir(), "response_data");
+        if (!response_folder.exists()) {
+            response_folder.mkdirs();
+        }
+
+//        saveAndExtractZip(responseZipStream)
+    }
+
+    private void updateRvFoodlist() {
+        //Configure and set up the Recycler view with the food items recieved from backend
+        foodItems = new ArrayList<>();
+        foodItems.add(new IndividualFoodItem(R.drawable.ic_launcher_foreground, "Delicious Burger"));
+        foodItems.add(new IndividualFoodItem(R.drawable.ic_launcher_foreground, "Cheesy Pizza"));
+        foodItems.add(new IndividualFoodItem(R.drawable.ic_launcher_foreground, "Fresh Sushi"));
+
+        foodAdapter = new FoodAdapter(foodItems);
+        rvFoodList.setAdapter(foodAdapter);
     }
 
     private Bitmap rotateBitmap(Bitmap original, float degrees) {

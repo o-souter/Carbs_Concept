@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">Carbs_Concept</string>
+    <color name="beige">#dbb87b</color>
+    <color name="darkerbeige">#bd9d66</color>
 </resources>

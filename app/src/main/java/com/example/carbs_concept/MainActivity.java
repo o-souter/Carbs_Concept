@@ -281,7 +281,7 @@ public class MainActivity extends AppCompatActivity {
 //                    captureButton.setEnabled(false);
                     if (backendFound) {
                         captureButton.setEnabled(true);
-                        captureButton.setText("Capture");
+                        captureButton.setText("Capture when ready!");
                     }
                     else {
                         captureButton.setEnabled(false);

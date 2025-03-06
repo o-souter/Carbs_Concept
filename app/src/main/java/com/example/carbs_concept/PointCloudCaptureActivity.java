@@ -7,6 +7,7 @@ import android.os.Looper;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.TextView;
 
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
@@ -39,7 +40,7 @@ public class PointCloudCaptureActivity extends AppCompatActivity {
     private long captureStartTime = 0;  // Tracks when capture started
     private int capturedPointCount = 0;  // Tracks number of captured points
     private StringBuilder allPointData = new StringBuilder();  // StringBuilder to accumulate points data
-
+    private TextView txtPointCloudInfo;
     //Data imported from image capture
     private String imagePath;
     private String ipForBackend;
@@ -51,6 +52,10 @@ public class PointCloudCaptureActivity extends AppCompatActivity {
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_point_cloud_capture);
         Intent intent = getIntent();
+
+        txtPointCloudInfo = findViewById(R.id.txtPointCloudInfo);
+        txtPointCloudInfo.setVisibility(View.VISIBLE);
+
         imagePath = intent.getStringExtra("imagePath");
         ipForBackend = intent.getStringExtra("correctIP");
         portForBackend = intent.getStringExtra("correctPort");
@@ -77,6 +82,7 @@ public class PointCloudCaptureActivity extends AppCompatActivity {
     }
 
     private void startCapture() {
+        txtPointCloudInfo.setVisibility(View.INVISIBLE);
         captureStartTime = System.currentTimeMillis();  // Mark the start time
         capturedPointCount = 0;  // Reset the point count
         allPointData.setLength(0);  // Clear any previous captured data
