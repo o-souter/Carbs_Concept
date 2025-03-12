@@ -21,11 +21,13 @@ public class FoodAdapter extends RecyclerView.Adapter<FoodAdapter.FoodViewHolder
     public static class FoodViewHolder extends RecyclerView.ViewHolder {
         ImageView imageView;
         TextView textView;
+        TextView carbsView;
 
         public FoodViewHolder(View itemView){
             super(itemView);
             imageView = itemView.findViewById(R.id.foodImageView);
             textView = itemView.findViewById(R.id.foodTextView);
+            carbsView = itemView.findViewById(R.id.carbsTextView);
         }
     }
 
@@ -34,8 +36,6 @@ public class FoodAdapter extends RecyclerView.Adapter<FoodAdapter.FoodViewHolder
     public FoodViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_food, parent, false);
         return new FoodViewHolder(view);
-
-
     }
 
     @Override
@@ -43,6 +43,7 @@ public class FoodAdapter extends RecyclerView.Adapter<FoodAdapter.FoodViewHolder
         IndividualFoodItem foodItem = foodList.get(position);
         holder.imageView.setImageResource(foodItem.getImageResId());
         holder.textView.setText(foodItem.getDescription());
+        holder.carbsView.setText("Carbohydrates: " + foodItem.getGramsCarbs() + "g");
     }
     @Override
     public int getItemCount() {
