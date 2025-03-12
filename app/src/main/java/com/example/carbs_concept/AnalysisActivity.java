@@ -18,6 +18,7 @@ import android.widget.TextView;
 
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.camera.core.processing.SurfaceProcessorNode;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
@@ -257,7 +258,7 @@ public class AnalysisActivity extends AppCompatActivity {
             Double totalCarbs = getFoodItemsFromFile(foodDataFile);
 //            for (FoodItem)
 
-            txtCarbBreakdown.setText("Food breakdown: \nTotal Carbs: " + totalCarbs);
+            txtCarbBreakdown.setText("Food breakdown: \nTotal Carbs: " + totalCarbs + "g");
             //Finally, remove the loading progressbar to show that processing is complete
             progressBar.setVisibility(View.INVISIBLE);
             textStatus.setText("Successfully processed food data");
@@ -303,14 +304,17 @@ public class AnalysisActivity extends AppCompatActivity {
     private void updateRvFoodlist(HashMap<String, Double> foodsAndInfo) {
         //Configure and set up the Recycler view with the food items recieved from backend
         foodItems = new ArrayList<>();
-        for (Map.Entry<String, Double> entry : foodsAndInfo.entrySet()) {
-            String foodName = entry.getKey();
-            Double carbCount = entry.getValue();
-            foodItems.add(new IndividualFoodItem(R.drawable.ic_launcher_foreground, foodName, carbCount));
+        if (!foodsAndInfo.isEmpty()) {
+            for (Map.Entry<String, Double> entry : foodsAndInfo.entrySet()) {
+                String foodName = entry.getKey();
+                Double carbCount = entry.getValue();
+                foodItems.add(new IndividualFoodItem(R.drawable.ic_launcher_foreground, foodName, carbCount));
+            }
         }
-//        foodItems.add(new IndividualFoodItem(R.drawable.ic_launcher_foreground, "Delicious Burger"));
-//        foodItems.add(new IndividualFoodItem(R.drawable.ic_launcher_foreground, "Cheesy Pizza"));
-//        foodItems.add(new IndividualFoodItem(R.drawable.ic_launcher_foreground, "Fresh Sushi"));
+        else {
+            foodItems.add(new IndividualFoodItem(android.R.drawable.ic_menu_report_image, "No recognisable food items found", 0));
+        } //Reference:	@android:drawable/ic_menu_report_image
+
 
         foodAdapter = new FoodAdapter(foodItems);
         rvFoodList.setAdapter(foodAdapter);

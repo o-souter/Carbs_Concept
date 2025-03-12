@@ -11,6 +11,7 @@ import android.widget.TextView;
 
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
@@ -41,6 +42,7 @@ public class PointCloudCaptureActivity extends AppCompatActivity {
     private int capturedPointCount = 0;  // Tracks number of captured points
     private StringBuilder allPointData = new StringBuilder();  // StringBuilder to accumulate points data
     private TextView txtPointCloudInfo;
+    private ConstraintLayout pointCloudInfoAlert;
     //Data imported from image capture
     private String imagePath;
     private String ipForBackend;
@@ -53,9 +55,10 @@ public class PointCloudCaptureActivity extends AppCompatActivity {
         setContentView(R.layout.activity_point_cloud_capture);
         Intent intent = getIntent();
 
-        txtPointCloudInfo = findViewById(R.id.txtPointCloudInfo);
-        txtPointCloudInfo.setVisibility(View.VISIBLE);
-
+//        txtPointCloudInfo = findViewById(R.id.txtPointCloudInfo);
+//        txtPointCloudInfo.setVisibility(View.VISIBLE);
+        pointCloudInfoAlert = findViewById(R.id.alertPointCloudInfo);
+        pointCloudInfoAlert.setVisibility(View.VISIBLE);
         imagePath = intent.getStringExtra("imagePath");
         ipForBackend = intent.getStringExtra("correctIP");
         portForBackend = intent.getStringExtra("correctPort");
@@ -82,7 +85,7 @@ public class PointCloudCaptureActivity extends AppCompatActivity {
     }
 
     private void startCapture() {
-        txtPointCloudInfo.setVisibility(View.INVISIBLE);
+        pointCloudInfoAlert.setVisibility(View.INVISIBLE);
         captureStartTime = System.currentTimeMillis();  // Mark the start time
         capturedPointCount = 0;  // Reset the point count
         allPointData.setLength(0);  // Clear any previous captured data

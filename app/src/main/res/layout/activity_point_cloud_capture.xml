@@ -33,18 +33,40 @@
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_bias="0.976" />
 
-    <TextView
-        android:id="@+id/txtPointCloudInfo"
-        android:layout_width="296dp"
-        android:layout_height="116dp"
-        android:background="@color/black"
-        android:text="A pointcloud is required to be captured. When ready, press Start and capture a point cloud of your plate of food."
-        android:textColor="@color/white"
-        android:textSize="16sp"
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/alertPointCloudInfo"
+        android:layout_width="351dp"
+        android:layout_height="173dp"
+        android:background="@drawable/rounded_background"
         app:layout_constraintBottom_toTopOf="@+id/btnStartPointCloudCapture"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="@+id/arFragment"
-        app:layout_constraintVertical_bias="0.085" />
+        app:layout_constraintVertical_bias="0.218">
+
+        <TextView
+            android:id="@+id/txtPointCloudInfo"
+            android:layout_width="260dp"
+            android:layout_height="153dp"
+            android:padding="20px"
+            android:paddingLeft="20px"
+            android:paddingTop="10px"
+            android:text="A pointcloud is required to be captured. When ready, press Start. Please keep your phone still!"
+            android:textColor="@color/white"
+            android:textSize="20sp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <ImageView
+            android:id="@+id/imageView"
+            android:layout_width="70dp"
+            android:layout_height="71dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@+id/txtPointCloudInfo"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:srcCompat="@android:drawable/ic_dialog_info" />
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
