@@ -1,18 +1,18 @@
 package com.example.carbs_concept;
 
 public class IndividualFoodItem {
-    private int imageResId;
+    private String imagePath;
     private String description;
     private double gramsCarbs;
 
-    public IndividualFoodItem(int imageResId, String description, double gramsCarbs) {
-        this.imageResId = imageResId;
+    public IndividualFoodItem(String imagePath, String description, double gramsCarbs) {
+        this.imagePath = imagePath;
         this.description = description;
         this.gramsCarbs = gramsCarbs;
     }
 
-    public int getImageResId() {
-        return imageResId;
+    public String getImagePath() {
+        return imagePath;
     }
 
     public String getDescription() {

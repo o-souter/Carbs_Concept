@@ -305,14 +305,19 @@ public class AnalysisActivity extends AppCompatActivity {
         //Configure and set up the Recycler view with the food items recieved from backend
         foodItems = new ArrayList<>();
         if (!foodsAndInfo.isEmpty()) {
+            int img_idx = 0;
             for (Map.Entry<String, Double> entry : foodsAndInfo.entrySet()) {
                 String foodName = entry.getKey();
                 Double carbCount = entry.getValue();
-                foodItems.add(new IndividualFoodItem(R.drawable.ic_launcher_foreground, foodName, carbCount));
+                File detectionImg = new File(getFilesDir() + "/response_data/", "detection_" + img_idx + ".png");
+                String detectionImgPath = detectionImg.exists() ? detectionImg.getAbsolutePath() : null;
+                foodItems.add(new IndividualFoodItem(detectionImgPath, foodName, carbCount));
+                Log.d("UpdateRvFoodList", "Added food item: " + detectionImgPath);
+
             }
         }
         else {
-            foodItems.add(new IndividualFoodItem(android.R.drawable.ic_menu_report_image, "No recognisable food items found", 0));
+            foodItems.add(new IndividualFoodItem(null, "No recognisable food items found", 0));
         } //Reference:	@android:drawable/ic_menu_report_image
 
 

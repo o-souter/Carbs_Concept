@@ -1,5 +1,7 @@
 package com.example.carbs_concept;
 
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -41,7 +43,15 @@ public class FoodAdapter extends RecyclerView.Adapter<FoodAdapter.FoodViewHolder
     @Override
     public void onBindViewHolder(@NonNull FoodViewHolder holder, int position) {
         IndividualFoodItem foodItem = foodList.get(position);
-        holder.imageView.setImageResource(foodItem.getImageResId());
+        String imagePath = foodItem.getImagePath();
+        if (imagePath == null) { //Invalid detection
+            holder.imageView.setImageResource(android.R.drawable.ic_menu_report_image);
+        }
+        else {
+            Bitmap imgBitmap = BitmapFactory.decodeFile(foodItem.getImagePath());
+            holder.imageView.setImageBitmap(imgBitmap);
+        }
+
         holder.textView.setText(foodItem.getDescription());
         holder.carbsView.setText("Carbohydrates: " + foodItem.getGramsCarbs() + "g");
     }

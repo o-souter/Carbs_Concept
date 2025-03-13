@@ -36,8 +36,8 @@ public class PointCloudCaptureActivity extends AppCompatActivity {
     private final Handler handler = new Handler(Looper.getMainLooper());
     private boolean isCapturing = false;
     private Button btnStartCapture;
-    private static final long CAPTURE_TIMEOUT_MS = 15000;  // Duration in milliseconds to wait for a suitable point cloud (adjust as needed)
-    private static final int MIN_POINTS_THRESHOLD = 10000;  // Minimum number of points to consider the capture as "suitable"
+    private static final long CAPTURE_TIMEOUT_MS = 1000;  //15000// Duration in milliseconds to wait for a suitable point cloud (adjust as needed)
+    private static final int MIN_POINTS_THRESHOLD = 1000;  //15000// Minimum number of points to consider the capture as "suitable"
     private long captureStartTime = 0;  // Tracks when capture started
     private int capturedPointCount = 0;  // Tracks number of captured points
     private StringBuilder allPointData = new StringBuilder();  // StringBuilder to accumulate points data
