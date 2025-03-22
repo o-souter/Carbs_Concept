@@ -70,6 +70,7 @@ import org.opencv.objdetect.DetectorParameters;
 
 //import com.example.carbs_concept.
 import android.Manifest;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
 
@@ -88,6 +89,7 @@ public class MainActivity extends AppCompatActivity {
 
     private ImageCapture imageCapture;
     private Button captureButton;
+    private ImageButton helpButton;
     private ArucoDetector arucoDetector;
     private TextView detectionFeedback;
     private ImageView liveImageView;
@@ -114,6 +116,16 @@ public class MainActivity extends AppCompatActivity {
             testPort = correctPort;
             Log.d("Connection to Flask Backend", "Correct Backend address provided: " + testIP + ":" + testPort);
         }
+
+        helpButton = findViewById(R.id.btnHelp);
+        helpButton.setOnClickListener(v -> {
+            Intent showHelp = new Intent(this, HelpActivity.class);
+            showHelp.putExtra("correctIP", correctServerIP);
+            showHelp.putExtra("correctPort", correctServerPort);
+            startActivity(showHelp);
+        });
+        helpButton.setEnabled(false);
+
         backendFound = false;
         testFlaskConnection(testIP, testPort); //Test connection with backend and handle accordingly
 
@@ -138,6 +150,7 @@ public class MainActivity extends AppCompatActivity {
                 captureImage();
             }
         });
+
         liveImageView = findViewById(R.id.liveImageView);
         initializeArucoDetector();
         initializeCamera();
@@ -159,12 +172,14 @@ public class MainActivity extends AppCompatActivity {
                 Intent intent = new Intent(this, ServerConfigurationActivity.class);
                 startActivity(intent);
 
+
             }
             else {
                 //If the address tested is correct, set as the correct address
                 correctServerIP = ip;
                 correctServerPort = port;
                 backendFound = true;
+                helpButton.setEnabled(true);
             }
         });
     }
@@ -379,26 +394,6 @@ public class MainActivity extends AppCompatActivity {
         );
     }
 
-//    private float[] getIntrinsicMatrix(Context context) {
-//        try {
-//            CameraManager cameraManager = (CameraManager) getSystemService(CAMERA_SERVICE);
-//            String cameraId = cameraManager.getCameraIdList()[0]; // Assuming rear camera
-//            CameraCharacteristics characteristics = cameraManager.getCameraCharacteristics(cameraId);
-//            float[] focalLengths = characteristics.get(CameraCharacteristics.LENS_INFO_AVAILABLE_FOCAL_LENGTHS);
-//            float[] sensorSize = characteristics.get(CameraCharacteristics.SENSOR_INFO_PHYSICAL_SIZE);
-//            int[] pixelArraySize = characteristics.get(CameraCharacteristics.SENSOR_INFO_PIXEL_ARRAY_SIZE);
-//
-//            float fx = focalLengths[0] * (pixelArraySize[0] / sensorSize[0]);
-//            float fy = focalLengths[0] * (pixelArraySize[1] / sensorSize[1]);
-//            float cx = pixelArraySize[0] / 2.0f;
-//            float cy = pixelArraySize[1] / 2.0f;
-//
-//            return new float[]{fx, 0, cx, 0, fy, cy, 0, 0, 1};
-//        } catch (Exception e) {
-//            Log.e("IntrinsicMatrix", "Failed to get camera intrinsic matrix", e);
-//            return new float[]{0, 0, 0, 0, 0, 0, 0, 0, 0}; // Return identity matrix if error
-//        }
-//    }
 
     private void processImage(String imagePath){//, String pointCloudPath) {
         Intent intent = new Intent(this, PointCloudCaptureActivity.class);
