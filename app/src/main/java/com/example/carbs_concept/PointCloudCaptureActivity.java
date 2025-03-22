@@ -1,6 +1,7 @@
 package com.example.carbs_concept;
 
 import android.content.Intent;
+import android.media.Image;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -18,6 +19,7 @@ import androidx.core.view.WindowInsetsCompat;
 
 import com.google.ar.core.Frame;
 import com.google.ar.core.PointCloud;
+import com.google.ar.core.exceptions.NotYetAvailableException;
 import com.google.ar.sceneform.ux.ArFragment;
 
 import java.io.File;
@@ -26,6 +28,11 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.FloatBuffer;
 import java.util.Locale;
+import android.media.Image;
+import java.nio.ByteBuffer;
+import com.google.ar.core.Camera;
+import com.google.ar.core.Frame;
+import android.util.Log;
 
 public class PointCloudCaptureActivity extends AppCompatActivity {
 
@@ -36,7 +43,7 @@ public class PointCloudCaptureActivity extends AppCompatActivity {
     private final Handler handler = new Handler(Looper.getMainLooper());
     private boolean isCapturing = false;
     private Button btnStartCapture;
-    private static final long CAPTURE_TIMEOUT_MS = 1000;  //15000// Duration in milliseconds to wait for a suitable point cloud (adjust as needed)
+    private static final long CAPTURE_TIMEOUT_MS = 1;  //15000// Duration in milliseconds to wait for a suitable point cloud (adjust as needed)
     private static final int MIN_POINTS_THRESHOLD = 1000;  //15000// Minimum number of points to consider the capture as "suitable"
     private long captureStartTime = 0;  // Tracks when capture started
     private int capturedPointCount = 0;  // Tracks number of captured points
@@ -60,6 +67,7 @@ public class PointCloudCaptureActivity extends AppCompatActivity {
         pointCloudInfoAlert = findViewById(R.id.alertPointCloudInfo);
         pointCloudInfoAlert.setVisibility(View.VISIBLE);
         imagePath = intent.getStringExtra("imagePath");
+
         ipForBackend = intent.getStringExtra("correctIP");
         portForBackend = intent.getStringExtra("correctPort");
 
@@ -131,17 +139,43 @@ public class PointCloudCaptureActivity extends AppCompatActivity {
             return;
         }
         FloatBuffer points = pointCloud.getPoints();
+
+        Image image = null;
+        try {
+            image = frame.acquireCameraImage();
+        } catch (NotYetAvailableException e) {
+            throw new RuntimeException(e);
+        }
+        if (image == null) {
+            Log.e("PointCloud", "Could not acquire camera image");
+            return;
+        }
+
+        int[] rgbImage = convertImageToRGB(image);
         while (points.hasRemaining()) {
             float x = points.get();
             float y = points.get();
             float z = points.get();
             float confidence = points.get();  // Optional: if you need it
 
-            // Append the points to the cumulative string
-            allPointData.append(x).append(" ").append(y).append(" ").append(z).append("\n");
+            // Project (x, y, z) to 2D image coordinates
+            int[] uv = new int[2];
+            if (projectToImageCoords(x, y, z, frame, image.getWidth(), image.getHeight(), uv)) {
+                int color = rgbImage[uv[1] * image.getWidth() + uv[0]];  // Get color from image
+                int red = (color >> 16) & 0xFF;
+                int green = (color >> 8) & 0xFF;
+                int blue = color & 0xFF;
+
+                allPointData.append(x).append(" ").append(y).append(" ").append(z)
+                        .append(" ").append(red).append(" ").append(green).append(" ").append(blue).append("\n");
+            } else {
+                allPointData.append(x).append(" ").append(y).append(" ").append(z).append("\n");  // No color if projection fails
+            }
 
             capturedPointCount++;  // Increment the captured points count
         }
+        pointCloud.release();
+        image.close();
 
         // If a sufficient number of points have been captured or if timeout is reached, stop the capture
         if (capturedPointCount >= MIN_POINTS_THRESHOLD || (System.currentTimeMillis() - captureStartTime >= CAPTURE_TIMEOUT_MS)) {
@@ -150,6 +184,89 @@ public class PointCloudCaptureActivity extends AppCompatActivity {
         }
 
     }
+
+    private int[] convertImageToRGB(Image image) {
+        int width = image.getWidth();
+        int height = image.getHeight();
+        int[] rgbPixels = new int[width * height];
+
+        ByteBuffer yBuffer = image.getPlanes()[0].getBuffer();  // Luminance (Y)
+        ByteBuffer uBuffer = image.getPlanes()[1].getBuffer();  // Chrominance (U)
+        ByteBuffer vBuffer = image.getPlanes()[2].getBuffer();  // Chrominance (V)
+
+        int rowStride = image.getPlanes()[0].getRowStride();
+        int pixelStride = image.getPlanes()[1].getPixelStride();
+
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                int yValue = yBuffer.get(y * rowStride + x) & 0xFF;
+                int uvIndex = (y / 2) * (rowStride / 2) + (x / 2) * pixelStride;
+                int uValue = uBuffer.get(uvIndex) & 0xFF;
+                int vValue = vBuffer.get(uvIndex) & 0xFF;
+
+                // Convert YUV to RGB
+                int r = (int) (yValue + 1.402 * (vValue - 128));
+                int g = (int) (yValue - 0.344136 * (uValue - 128) - 0.714136 * (vValue - 128));
+                int b = (int) (yValue + 1.772 * (uValue - 128));
+
+                // Clamp to 0-255
+                r = Math.max(0, Math.min(255, r));
+                g = Math.max(0, Math.min(255, g));
+                b = Math.max(0, Math.min(255, b));
+
+                // Store pixel in ARGB format
+                rgbPixels[y * width + x] = (0xFF << 24) | (r << 16) | (g << 8) | b;
+            }
+        }
+
+        return rgbPixels;
+    }
+
+    private boolean projectToImageCoords(float x, float y, float z, Frame frame, int imageWidth, int imageHeight, int[] uv) {
+        Camera camera = frame.getCamera();
+
+        float[] projMatrix = new float[16];
+        camera.getProjectionMatrix(projMatrix, 0, 0.1f, 100f);  // Get projection matrix
+
+        float[] viewMatrix = new float[16];
+        camera.getViewMatrix(viewMatrix, 0);
+
+        float[] worldPoint = {x, y, z, 1};  // Convert to homogeneous coordinates
+        float[] screenPoint = new float[4];
+
+        // Multiply view matrix
+        multiplyMatrixAndVector(viewMatrix, worldPoint, screenPoint);
+
+        // Multiply projection matrix
+        multiplyMatrixAndVector(projMatrix, screenPoint, screenPoint);
+
+        if (screenPoint[3] == 0) return false;  // Avoid division by zero
+
+        float ndcX = screenPoint[0] / screenPoint[3];  // Normalize device coordinates
+        float ndcY = screenPoint[1] / screenPoint[3];
+
+        // Convert to pixel coordinates
+        uv[0] = (int) ((ndcX * 0.5f + 0.5f) * imageWidth);
+        uv[1] = (int) ((-ndcY * 0.5f + 0.5f) * imageHeight);
+
+        // Ensure points are within bounds
+        if (uv[0] < 0 || uv[0] >= imageWidth || uv[1] < 0 || uv[1] >= imageHeight) {
+            return false;
+        }
+
+        return true;
+    }
+
+    // Helper function to multiply a 4x4 matrix by a 4D vector
+    private void multiplyMatrixAndVector(float[] matrix, float[] vector, float[] result) {
+        for (int i = 0; i < 4; i++) {
+            result[i] = matrix[i * 4] * vector[0] +
+                    matrix[i * 4 + 1] * vector[1] +
+                    matrix[i * 4 + 2] * vector[2] +
+                    matrix[i * 4 + 3] * vector[3];
+        }
+    }
+
 
     private void stopCapture() {
         // Update button text to indicate capture has stopped

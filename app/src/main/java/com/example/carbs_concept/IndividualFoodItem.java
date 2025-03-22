@@ -4,11 +4,17 @@ public class IndividualFoodItem {
     private String imagePath;
     private String description;
     private double gramsCarbs;
+    private double estimatedWeight;
+    private double estimatedVolume;
+    private double detectionConfidence;
 
-    public IndividualFoodItem(String imagePath, String description, double gramsCarbs) {
+    public IndividualFoodItem(String imagePath, String description, double gramsCarbs, double estimatedWeight, double estimatedVolume, double detectionConfidence) {
         this.imagePath = imagePath;
         this.description = description;
         this.gramsCarbs = gramsCarbs;
+        this.estimatedWeight = estimatedWeight;
+        this.estimatedVolume = estimatedVolume;
+        this.detectionConfidence = detectionConfidence;
     }
 
     public String getImagePath() {
@@ -24,5 +30,16 @@ public class IndividualFoodItem {
 
     public double getGramsCarbs() {
         return gramsCarbs;
+    }
+    public double getEstimatedWeight() {
+        return estimatedWeight;
+    }
+    public double getEstimatedVolume() {
+        return estimatedVolume;
+    }
+
+    public int getDetectionConfidence() {
+        return (int)(detectionConfidence*100);
+
     }
 }

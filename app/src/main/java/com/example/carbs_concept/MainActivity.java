@@ -3,12 +3,17 @@ package com.example.carbs_concept;
 import static org.opencv.android.NativeCameraView.TAG;
 import static org.opencv.imgproc.Imgproc.COLOR_BGR2RGB;
 
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
+import android.hardware.camera2.CameraAccessException;
+import android.hardware.camera2.CameraCharacteristics;
+import android.hardware.camera2.CameraManager;
 import android.os.Bundle;
 import android.util.DisplayMetrics;
 import android.util.Log;
+import android.util.SizeF;
 import android.view.ViewTreeObserver;
 import android.widget.Button;
 
@@ -192,13 +197,13 @@ public class MainActivity extends AppCompatActivity {
         }
 
     }
-    private void releaseCamera() {
-        if (cameraProvider != null) {
-            cameraProvider.unbindAll();
-            cameraProvider = null;
-            Log.d("CameraX", "Camera released successfully.");
-        }
-    }
+//    private void releaseCamera() {
+//        if (cameraProvider != null) {
+//            cameraProvider.unbindAll();
+//            cameraProvider = null;
+//            Log.d("CameraX", "Camera released successfully.");
+//        }
+//    }
 
 
     private void analyseFrame(ImageProxy imageProxy) {
@@ -361,6 +366,7 @@ public class MainActivity extends AppCompatActivity {
                     @Override
                     public void onImageSaved(@NonNull ImageCapture.OutputFileResults outputFileResults) {
                         Log.d("CameraX", "Image saved: " + file.getAbsolutePath());
+//                        Mat intrinsicMatrix = getIntrinsicMatrix();
                         processImage(file.getAbsolutePath());
 
                     }
@@ -373,10 +379,36 @@ public class MainActivity extends AppCompatActivity {
         );
     }
 
-    private void processImage(String imagePath){//, String pointCloudPath) {
+//    private float[] getIntrinsicMatrix(Context context) {
+//        try {
+//            CameraManager cameraManager = (CameraManager) getSystemService(CAMERA_SERVICE);
+//            String cameraId = cameraManager.getCameraIdList()[0]; // Assuming rear camera
+//            CameraCharacteristics characteristics = cameraManager.getCameraCharacteristics(cameraId);
+//            float[] focalLengths = characteristics.get(CameraCharacteristics.LENS_INFO_AVAILABLE_FOCAL_LENGTHS);
+//            float[] sensorSize = characteristics.get(CameraCharacteristics.SENSOR_INFO_PHYSICAL_SIZE);
+//            int[] pixelArraySize = characteristics.get(CameraCharacteristics.SENSOR_INFO_PIXEL_ARRAY_SIZE);
+//
+//            float fx = focalLengths[0] * (pixelArraySize[0] / sensorSize[0]);
+//            float fy = focalLengths[0] * (pixelArraySize[1] / sensorSize[1]);
+//            float cx = pixelArraySize[0] / 2.0f;
+//            float cy = pixelArraySize[1] / 2.0f;
+//
+//            return new float[]{fx, 0, cx, 0, fy, cy, 0, 0, 1};
+//        } catch (Exception e) {
+//            Log.e("IntrinsicMatrix", "Failed to get camera intrinsic matrix", e);
+//            return new float[]{0, 0, 0, 0, 0, 0, 0, 0, 0}; // Return identity matrix if error
+//        }
+//    }
 
+    private void processImage(String imagePath){//, String pointCloudPath) {
         Intent intent = new Intent(this, PointCloudCaptureActivity.class);
         intent.putExtra("imagePath", imagePath);
+
+        double[] matrixData = new double[9];
+//        intrinsicMatrix.get(0, 0, matrixData);
+//        intent.putExtra("intrinsicMatrix", matrixData);
+
+
         intent.putExtra("correctIP", correctServerIP);
         intent.putExtra("correctPort", correctServerPort);
         startActivity(intent);

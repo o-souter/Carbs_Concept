@@ -24,12 +24,18 @@ public class FoodAdapter extends RecyclerView.Adapter<FoodAdapter.FoodViewHolder
         ImageView imageView;
         TextView textView;
         TextView carbsView;
+        TextView confidenceView;
+        TextView weightView;
+        TextView volumeView;
 
         public FoodViewHolder(View itemView){
             super(itemView);
             imageView = itemView.findViewById(R.id.foodImageView);
             textView = itemView.findViewById(R.id.foodTextView);
             carbsView = itemView.findViewById(R.id.carbsTextView);
+            confidenceView = itemView.findViewById(R.id.confidenceTextView);
+            weightView = itemView.findViewById(R.id.weightTextView);
+            volumeView = itemView.findViewById(R.id.volumeTextView);
         }
     }
 
@@ -54,6 +60,9 @@ public class FoodAdapter extends RecyclerView.Adapter<FoodAdapter.FoodViewHolder
 
         holder.textView.setText(foodItem.getDescription());
         holder.carbsView.setText("Carbohydrates: " + foodItem.getGramsCarbs() + "g");
+        holder.confidenceView.setText("Confidence: " + foodItem.getDetectionConfidence() + "%");
+        holder.weightView.setText("Estimated weight: " + foodItem.getEstimatedWeight() + "g");
+        holder.volumeView.setText("Estimated volume: " + foodItem.getEstimatedVolume() + "cm^3");
     }
     @Override
     public int getItemCount() {

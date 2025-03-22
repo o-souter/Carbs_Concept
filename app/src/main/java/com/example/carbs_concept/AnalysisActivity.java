@@ -1,7 +1,5 @@
 package com.example.carbs_concept;
 
-import static java.lang.Double.parseDouble;
-
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -18,15 +16,11 @@ import android.widget.TextView;
 
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.camera.core.processing.SurfaceProcessorNode;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-
-import com.google.ar.core.Session;
-import com.google.ar.sceneform.ux.ArFragment;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -36,6 +30,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -255,20 +250,22 @@ public class AnalysisActivity extends AppCompatActivity {
             }
 
             //Update recycler view and get carbs total
-            Double totalCarbs = getFoodItemsFromFile(foodDataFile);
+            ArrayList<Double> totals = getFoodDataFromFile(foodDataFile);
 //            for (FoodItem)
 
-            txtCarbBreakdown.setText("Food breakdown: \nTotal Carbs: " + totalCarbs + "g");
+            txtCarbBreakdown.setText("Total Carbs: " + totals.get(0) + "g" +"\nTotal Volume: " + totals.get(1) + "cm^3" + "\nTotal Weight: " + totals.get(2) + "g");
             //Finally, remove the loading progressbar to show that processing is complete
             progressBar.setVisibility(View.INVISIBLE);
             textStatus.setText("Successfully processed food data");
         });
     }
 
-    private Double getFoodItemsFromFile(File foodDataFile) {
+    private ArrayList<Double> getFoodDataFromFile(File foodDataFile) {
 //        ArrayList foodItems = new ArrayList<IndividualFoodItem>();
-        double totalCarbs = 0;
-        HashMap<String, Double> map = new HashMap<String, Double>();
+        Map<String, List<Double>> foodDataMap = new HashMap<>();
+        double totalCarbs = 0.0;
+        double totalVolume = 0.0;
+        double totalWeight = 0.0;
         String line;
         int linesToSkip = 1;
         try {
@@ -282,12 +279,36 @@ public class AnalysisActivity extends AppCompatActivity {
             }
 
             while ((line = reader.readLine()) != null) {
-                String[] parts = line.split(":", 2);
-                if (parts.length >= 2) {
-                    String key = parts[0];
-                    Double value = parseDouble(parts[1]);
-                    map.put(key, value);
-                    totalCarbs += value;
+                // Remove parentheses and split by comma
+                String[] parts = line.split(":", 2);;
+                if (parts.length == 2) {
+                    String foodName = parts[0].trim();
+                    String valuesString = parts[1].replaceAll("[()]", "").trim();
+                    String[] values = valuesString.split(",\\s*");
+
+                    if (values.length == 4) {
+                        try {
+                            double carbohydrateCount = Double.parseDouble(values[0]);
+                            double estimatedVolume = Double.parseDouble(values[2]);
+                            double estimatedWeight = Double.parseDouble(values[3]);
+                            List<Double> foodValues = Arrays.asList(
+                                    carbohydrateCount,  // carbohydrateCount
+                                    Double.parseDouble(values[1]),  // detectionConfidence
+                                    estimatedVolume,  // estimatedVolume
+                                    estimatedWeight   // estimatedWeight
+                            );
+                            foodDataMap.put(foodName, foodValues);
+                            totalCarbs += carbohydrateCount;
+                            totalVolume += estimatedVolume;
+                            totalWeight += estimatedWeight;
+                        } catch (NumberFormatException e) {
+                            Log.e("getFoodDataFromFile", "Error parsing values for " + foodName + ": " + line);
+                        }
+                    } else {
+                        Log.e("getFoodDataFromFile", "Unexpected number of values for " + foodName + ": " + line);
+                    }
+                } else {
+                    Log.e("getFoodDataFromFile", "Invalid format: " + line);
                 }
             }
         }
@@ -295,29 +316,36 @@ public class AnalysisActivity extends AppCompatActivity {
             Log.e("getFoodItemsFromFile", "Unable to read food data file");
         }
 
-        updateRvFoodlist(map);
+        updateRvFoodlist(foodDataMap);
 
-
-        return totalCarbs;
+        ArrayList<Double> totalsList = new ArrayList<Double>();
+        totalsList.add(totalCarbs);
+        totalsList.add(totalVolume);
+        totalsList.add(totalWeight);
+        return totalsList;
     }
 
-    private void updateRvFoodlist(HashMap<String, Double> foodsAndInfo) {
-        //Configure and set up the Recycler view with the food items recieved from backend
+    private void updateRvFoodlist(Map<String, List<Double>> foodsAndInfo) {
+        //Configure and set up the Recycler view with the food items received from backend
         foodItems = new ArrayList<>();
         if (!foodsAndInfo.isEmpty()) {
             int img_idx = 0;
-            for (Map.Entry<String, Double> entry : foodsAndInfo.entrySet()) {
+            for (Map.Entry<String, List<Double>> entry : foodsAndInfo.entrySet()) {
                 String foodName = entry.getKey();
-                Double carbCount = entry.getValue();
+                List<Double> counts = entry.getValue();
+                Double carbCount = counts.get(0);
+                Double confidence = counts.get(1);
+                Double estimatedVolume = counts.get(2);
+                Double estimatedWeight = counts.get(3);
                 File detectionImg = new File(getFilesDir() + "/response_data/", "detection_" + img_idx + ".png");
                 String detectionImgPath = detectionImg.exists() ? detectionImg.getAbsolutePath() : null;
-                foodItems.add(new IndividualFoodItem(detectionImgPath, foodName, carbCount));
+                foodItems.add(new IndividualFoodItem(detectionImgPath, foodName, carbCount, estimatedWeight, estimatedVolume, confidence));
                 Log.d("UpdateRvFoodList", "Added food item: " + detectionImgPath);
 
             }
         }
         else {
-            foodItems.add(new IndividualFoodItem(null, "No recognisable food items found", 0));
+            foodItems.add(new IndividualFoodItem(null, "No recognisable food items found. Please try capturing again!", 0.0, 0.0, 0.0, 0.0));
         } //Reference:	@android:drawable/ic_menu_report_image
 
 

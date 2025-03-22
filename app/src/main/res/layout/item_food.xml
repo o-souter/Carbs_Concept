@@ -9,14 +9,14 @@
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="match_parent"
         android:orientation="horizontal"
         android:padding="8dp">
 
         <ImageView
             android:id="@+id/foodImageView"
-            android:layout_width="60dp"
-            android:layout_height="60dp"
+            android:layout_width="100dp"
+            android:layout_height="100dp"
             android:scaleType="centerCrop"
             app:srcCompat="@drawable/ic_launcher_foreground" />
 
@@ -37,6 +37,12 @@
                 android:textStyle="bold" />
 
             <TextView
+                android:id="@+id/confidenceTextView"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Confidence: 0.0" />
+
+            <TextView
                 android:id="@+id/carbsTextView"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -45,6 +51,18 @@
                 android:textColor="#000000"
                 android:textDirection="rtl"
                 android:textSize="16sp" />
+
+            <TextView
+                android:id="@+id/weightTextView"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Weight: 0g" />
+
+            <TextView
+                android:id="@+id/volumeTextView"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Volume: 0cm^3" />
         </LinearLayout>
 
     </LinearLayout>
