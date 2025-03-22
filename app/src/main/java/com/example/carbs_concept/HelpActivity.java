@@ -9,6 +9,7 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ListView;
 import android.widget.ScrollView;
+import android.widget.TextView;
 
 import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
@@ -42,6 +43,7 @@ public class HelpActivity extends AppCompatActivity {
     private String portForBackend;
     private String url;
     private ListView lvFoodClasses;
+    private TextView tvFlaskBackend;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -55,8 +57,8 @@ public class HelpActivity extends AppCompatActivity {
         btnBackToCapture = findViewById(R.id.btnBackToCapture);
         btnPrintMarkers = findViewById(R.id.btnPrintMarkers);
         lvFoodClasses = findViewById(R.id.lvFoodClasses);
-
-
+        tvFlaskBackend = findViewById(R.id.tvFlaskBackend);
+        tvFlaskBackend.setText("Processing backend address: " + url);
 
         btnBackToCapture.setOnClickListener(v -> {
             Intent goBack = new Intent(this, MainActivity.class);

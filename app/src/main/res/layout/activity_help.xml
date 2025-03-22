@@ -85,8 +85,8 @@
 
     <ListView
         android:id="@+id/lvFoodClasses"
-        android:layout_width="339dp"
-        android:layout_height="363dp"
+        android:layout_width="341dp"
+        android:layout_height="311dp"
         android:background="@color/darkerbeige"
         app:layout_constraintBottom_toTopOf="@+id/btnBackToCapture"
         app:layout_constraintEnd_toEndOf="parent"
@@ -105,5 +105,15 @@
         app:layout_constraintHorizontal_bias="0.506"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/textView8" />
+
+    <TextView
+        android:id="@+id/tvFlaskBackend"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="TextView"
+        app:layout_constraintBottom_toTopOf="@+id/btnBackToCapture"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/lvFoodClasses" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
