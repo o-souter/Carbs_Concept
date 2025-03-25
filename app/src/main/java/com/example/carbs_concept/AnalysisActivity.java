@@ -36,6 +36,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -105,8 +106,12 @@ public class AnalysisActivity extends AppCompatActivity {
     private void uploadData(String imagePath, String pointCloudPath) {
         progressBar.setVisibility(View.VISIBLE);
         progressBar.bringToFront();
-        OkHttpClient client = new OkHttpClient();
-
+//        OkHttpClient client = new OkHttpClient();
+        OkHttpClient client = new OkHttpClient.Builder()
+                .connectTimeout(10, TimeUnit.SECONDS)
+                .writeTimeout(10, TimeUnit.SECONDS)
+                .readTimeout(30, TimeUnit.SECONDS)
+                .build();
         File imageFile = new File(imagePath);
         File pointCloudFile = new File(pointCloudPath);
         if (!imageFile.exists() | !pointCloudFile.exists()) {
