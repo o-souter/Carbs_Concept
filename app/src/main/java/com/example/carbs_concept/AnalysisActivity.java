@@ -29,6 +29,9 @@ import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -58,12 +61,21 @@ public class AnalysisActivity extends AppCompatActivity {
     private ProgressBar progressBar;
     private TextView textStatus;
     private ImageButton btnBackToCamera;
-    private String ipForBackend;
-    private String portForBackend;
+    private String backendUrl;
+//    private String portForBackend;
     private TextView txtCarbBreakdown;
     private RecyclerView rvFoodList;
     private FoodAdapter foodAdapter;
     private List<IndividualFoodItem> foodItems;
+
+    private File foodDataFile;
+    private File mainImgFile;
+
+    private Map<String, List<Double>> foodsAndInfo;
+
+    private TextView tvMarkerStatus;
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -72,8 +84,8 @@ public class AnalysisActivity extends AppCompatActivity {
         Intent intent = getIntent();
         imagePath = intent.getStringExtra("imagePath");
         pointCloudPath = intent.getStringExtra("pointCloudPath");
-        ipForBackend = intent.getStringExtra("correctIP");
-        portForBackend = intent.getStringExtra("correctPort");
+        backendUrl = intent.getStringExtra("correctServerAddress");
+//        portForBackend = intent.getStringExtra("correctPort");
 
         BitmapFactory.Options bmOptions= new BitmapFactory.Options();
         imageBitmap = rotateBitmap(BitmapFactory.decodeFile(imagePath, bmOptions), 90);
@@ -85,6 +97,7 @@ public class AnalysisActivity extends AppCompatActivity {
         rvFoodList = findViewById(R.id.rvFoodList);
         rvFoodList.setLayoutManager(new LinearLayoutManager(this));
         txtCarbBreakdown = findViewById(R.id.txtCarbBreakdown);
+        tvMarkerStatus = findViewById(R.id.tvMarkerStatus);
         btnBackToCamera.setOnClickListener(v -> {
             Intent backToCamera = new Intent(this, MainActivity.class);
             startActivity(backToCamera);
@@ -104,6 +117,7 @@ public class AnalysisActivity extends AppCompatActivity {
 
 
     private void uploadData(String imagePath, String pointCloudPath) {
+
         progressBar.setVisibility(View.VISIBLE);
         progressBar.bringToFront();
 //        OkHttpClient client = new OkHttpClient();
@@ -132,7 +146,7 @@ public class AnalysisActivity extends AppCompatActivity {
                 .build();
 
         //Create request itself
-        String url = "http://" + ipForBackend + ":" + portForBackend;
+        String url = "http://" + backendUrl;
         Request request = new Request.Builder()
                 .url(url+"/"+"upload-data")
                 .post(requestBody)
@@ -168,17 +182,47 @@ public class AnalysisActivity extends AppCompatActivity {
 
 
     private void processAnalysisResponse(InputStream zipInputStream) {
-        //Check if a previous response file exists
-        File response_folder = new File(getFilesDir(), "response_data");
-        if (!response_folder.exists()) {
-            response_folder.mkdirs();
+        //Check if a previous response file exists and delete if so
+//        File response_folder = new File(getFilesDir(), "response_data");
+
+        File directory = new File(getFilesDir(), "response_data");
+        // Check if the directory exists
+        if (directory.exists()) {
+            deleteDirectory(directory); // Recursively delete contents
+        }
+
+        // Recreate the directory
+        if (directory.mkdirs()) {
+            Log.d("processAnalysisResponse", "Directory created: " + directory.getAbsolutePath());
+        } else {
+            Log.e("processAnalysisResponse", "Failed to create directory: " + directory.getAbsolutePath());
         }
 
 
         ExecutorService executor = Executors.newSingleThreadExecutor();
-        executor.execute(() -> saveAndExtractZip(zipInputStream, response_folder));
+        executor.execute(() -> saveAndExtractZip(zipInputStream, directory));
         executor.shutdown();
 //        saveAndExtractZip(zipInputStream, response_folder);
+    }
+
+    private static void deleteDirectory(File file) {
+        if (file.isDirectory()) {
+            File[] files = file.listFiles();
+            if (files != null) {
+                for (File child : files) {
+                    deleteDirectory(child); // Recursively delete files/subdirectories
+                }
+            }
+        }
+        file.delete(); // Delete the file or empty folder
+    }
+
+    private void deleteRecursive(File fileOrDirectory) {
+        if (fileOrDirectory.isDirectory())
+            for (File child : fileOrDirectory.listFiles())
+                deleteRecursive(child);
+
+        fileOrDirectory.delete();
     }
 
 
@@ -209,8 +253,8 @@ public class AnalysisActivity extends AppCompatActivity {
             ZipInputStream zis = new ZipInputStream(new FileInputStream(zipFile));
             ZipEntry entry;
             byte[] buffer = new byte[1024];
-            File mainImgFile = null;
-            File foodDataFile = null;
+            mainImgFile = null;
+            foodDataFile = null;
             while ((entry = zis.getNextEntry()) != null) {
                 File extractedFile = new File(outputDir, entry.getName());
 
@@ -234,7 +278,7 @@ public class AnalysisActivity extends AppCompatActivity {
             zis.close();
             Log.d("Zip Processing", "Zip extracted Successfully");
 
-            updateResultsGUI(foodDataFile, mainImgFile);
+            updateResultsGUI();//foodDataFile, mainImgFile);
         }
         catch (IOException e) {
             e.printStackTrace();
@@ -243,7 +287,7 @@ public class AnalysisActivity extends AppCompatActivity {
     }
 
 
-    private void updateResultsGUI(File foodDataFile, File mainImgFile) {
+    private void updateResultsGUI(){//File foodDataFile, File mainImgFile) {
         runOnUiThread(() -> {
             //Update the main display image
             Bitmap bitmap = BitmapFactory.decodeFile(mainImgFile.getAbsolutePath());
@@ -255,9 +299,17 @@ public class AnalysisActivity extends AppCompatActivity {
             }
 
             //Update recycler view and get carbs total
-            ArrayList<Double> totals = getFoodDataFromFile(foodDataFile);
+            ArrayList<Double> totals = getFoodDataFromFile();//foodDataFile);
+            boolean markerUsed = getMarkerStatusFromFile();
 //            for (FoodItem)
-
+            if (markerUsed) {
+                tvMarkerStatus.setText("");
+                tvMarkerStatus.setTextColor(Color.BLACK);
+            }
+            else {
+                tvMarkerStatus.setText("Warning: marker not found. Data will not be accurate.");
+                tvMarkerStatus.setTextColor(Color.RED);
+            }
             txtCarbBreakdown.setText("Total Carbs: " + totals.get(0) + "g" +"\nTotal Volume: " + totals.get(1) + "cm^3" + "\nTotal Weight: " + totals.get(2) + "g");
             //Finally, remove the loading progressbar to show that processing is complete
             progressBar.setVisibility(View.INVISIBLE);
@@ -265,7 +317,46 @@ public class AnalysisActivity extends AppCompatActivity {
         });
     }
 
-    private ArrayList<Double> getFoodDataFromFile(File foodDataFile) {
+    public void updateResultsSection(List<IndividualFoodItem> foodList) {
+        //Recalculate totals after items removed
+        float totalCarbs = 0;
+        float totalVolume = 0;
+        float totalWeight = 0;
+
+        for (IndividualFoodItem foodItem : foodList) {
+            totalCarbs += foodItem.getGramsCarbs();
+            totalVolume += foodItem.getEstimatedVolume();
+            totalWeight += foodItem.getEstimatedWeight();
+        }
+        updateTxtBreakdown("Total Carbs: " + totalCarbs + "g" +"\nTotal Volume: " + totalVolume + "cm^3" + "\nTotal Weight: " + totalWeight + "g");
+//        txtCarbBreakdown.setText();
+
+    }
+
+    private void updateTxtBreakdown(String text) {
+        txtCarbBreakdown.setText(text);
+    }
+
+
+    private boolean getMarkerStatusFromFile() {
+        try {
+            BufferedReader reader = new BufferedReader(new FileReader(foodDataFile));
+            String line = reader.readLine(); //Read the first line
+            if (line.contains("True")) {
+                return true;
+            }
+            else {
+                return false;
+            }
+
+        }
+        catch (IOException e) {
+            Log.e("getMarkerStatusFromFile", "Unable to read food data file");
+            return false;
+        }
+    }
+
+    private ArrayList<Double> getFoodDataFromFile(){//File foodDataFile) {
 //        ArrayList foodItems = new ArrayList<IndividualFoodItem>();
         Map<String, List<Double>> foodDataMap = new HashMap<>();
         double totalCarbs = 0.0;
@@ -275,7 +366,6 @@ public class AnalysisActivity extends AppCompatActivity {
         int linesToSkip = 1;
         try {
             BufferedReader reader = new BufferedReader(new FileReader(foodDataFile));
-
             for (int i = 0; i < linesToSkip; i++) {
                 if (reader.readLine() == null) {
                     Log.e("getFoodItemsFromFile", "File has fewer than " + linesToSkip + " lines.");
@@ -320,8 +410,8 @@ public class AnalysisActivity extends AppCompatActivity {
         catch (IOException e) {
             Log.e("getFoodItemsFromFile", "Unable to read food data file");
         }
-
-        updateRvFoodlist(foodDataMap);
+        foodsAndInfo = foodDataMap;
+        updateRvFoodlist();
 
         ArrayList<Double> totalsList = new ArrayList<Double>();
         totalsList.add(totalCarbs);
@@ -330,7 +420,7 @@ public class AnalysisActivity extends AppCompatActivity {
         return totalsList;
     }
 
-    private void updateRvFoodlist(Map<String, List<Double>> foodsAndInfo) {
+    public void updateRvFoodlist(){//Map<String, List<Double>> foodsAndInfo) {
         //Configure and set up the Recycler view with the food items received from backend
         foodItems = new ArrayList<>();
         if (!foodsAndInfo.isEmpty()) {
@@ -342,11 +432,11 @@ public class AnalysisActivity extends AppCompatActivity {
                 Double confidence = counts.get(1);
                 Double estimatedVolume = counts.get(2);
                 Double estimatedWeight = counts.get(3);
-                File detectionImg = new File(getFilesDir() + "/response_data/", "detection_" + img_idx + ".png");
+                File detectionImg = new File(getFilesDir() + "/response_data/", "detection_" + foodName + ".png");
                 String detectionImgPath = detectionImg.exists() ? detectionImg.getAbsolutePath() : null;
                 foodItems.add(new IndividualFoodItem(detectionImgPath, foodName, carbCount, estimatedWeight, estimatedVolume, confidence));
                 Log.d("UpdateRvFoodList", "Added food item: " + detectionImgPath);
-
+                img_idx += 1;
             }
         }
         else {
@@ -355,6 +445,21 @@ public class AnalysisActivity extends AppCompatActivity {
 
 
         foodAdapter = new FoodAdapter(foodItems);
+
+        // Register an AdapterDataObserver
+        foodAdapter.registerAdapterDataObserver(new RecyclerView.AdapterDataObserver() {
+            @Override
+            public void onItemRangeRemoved(int positionStart, int itemCount) {
+                super.onItemRangeRemoved(positionStart, itemCount);
+                // This will be called when items are removed
+                Log.d("RecyclerView", "Items removed from position " + positionStart + ", count: " + itemCount);
+                updateResultsSection(foodAdapter.getFoodItems());
+                // You can handle the removal here, like updating UI or performing any other actions
+            }
+        });
+
+
+
         rvFoodList.setAdapter(foodAdapter);
     }
 
@@ -377,8 +482,6 @@ public class AnalysisActivity extends AppCompatActivity {
             e.printStackTrace();
         }
     }
-
-
 
     private Bitmap rotateBitmap(Bitmap original, float degrees) {
         int width = original.getWidth();

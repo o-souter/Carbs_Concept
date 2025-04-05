@@ -8,7 +8,6 @@ import android.os.Environment;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ListView;
-import android.widget.ScrollView;
 import android.widget.TextView;
 
 import androidx.activity.EdgeToEdge;
@@ -39,7 +38,7 @@ public class HelpActivity extends AppCompatActivity {
 
     private Button btnBackToCapture;
     private Button btnPrintMarkers;
-    private String ipForBackend;
+    private String backendAddress;
     private String portForBackend;
     private String url;
     private ListView lvFoodClasses;
@@ -51,9 +50,9 @@ public class HelpActivity extends AppCompatActivity {
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_help);
         Intent intent = getIntent();
-        ipForBackend = intent.getStringExtra("correctIP");
-        portForBackend = intent.getStringExtra("correctPort");
-        url = "http://" + ipForBackend + ":" + portForBackend;
+        backendAddress = intent.getStringExtra("correctAddress");
+//        portForBackend = intent.getStringExtra("correctPort");
+        url = "http://" + backendAddress;
         btnBackToCapture = findViewById(R.id.btnBackToCapture);
         btnPrintMarkers = findViewById(R.id.btnPrintMarkers);
         lvFoodClasses = findViewById(R.id.lvFoodClasses);
@@ -62,6 +61,7 @@ public class HelpActivity extends AppCompatActivity {
 
         btnBackToCapture.setOnClickListener(v -> {
             Intent goBack = new Intent(this, MainActivity.class);
+            goBack.putExtra("correctBackendAddress", backendAddress);
             startActivity(goBack);
         });
 

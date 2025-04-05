@@ -1,45 +1,31 @@
 package com.example.carbs_concept;
 
-import static org.opencv.android.NativeCameraView.TAG;
 import static org.opencv.imgproc.Imgproc.COLOR_BGR2RGB;
-
-import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
-import android.hardware.camera2.CameraAccessException;
-import android.hardware.camera2.CameraCharacteristics;
-import android.hardware.camera2.CameraManager;
+
 import android.os.Bundle;
-import android.util.DisplayMetrics;
+
 import android.util.Log;
-import android.util.SizeF;
-import android.view.ViewTreeObserver;
 import android.widget.Button;
 
 import java.io.File;
-import java.io.FileOutputStream;
-import java.nio.ByteBuffer;
-import java.nio.FloatBuffer;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.sql.Array;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.concurrent.CountDownLatch;
 
-import android.view.View;
+import java.nio.ByteBuffer;
+
+import java.util.ArrayList;
+
+import java.util.List;
+
 import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.camera.core.Camera;
-import androidx.camera.core.CameraProvider;
 import androidx.camera.core.ImageAnalysis;
 import androidx.camera.core.ImageCaptureException;
 import androidx.camera.core.ImageProxy;
 import androidx.camera.core.Preview;
-import androidx.constraintlayout.widget.ConstraintLayout;
+
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.graphics.Insets;
@@ -48,7 +34,7 @@ import androidx.core.view.WindowInsetsCompat;
 import androidx.camera.lifecycle.ProcessCameraProvider;
 import androidx.camera.core.CameraSelector;
 import androidx.camera.core.ImageCapture;
-import androidx.camera.view.PreviewView;
+
 
 //OpenCV
 import org.opencv.android.OpenCVLoader;
@@ -94,10 +80,10 @@ public class MainActivity extends AppCompatActivity {
     private TextView detectionFeedback;
     private ImageView liveImageView;
     private ProcessCameraProvider cameraProvider;
-    private String defaultServerIP = "192.168.1.168";
-    private String defaultServerPort = "5000";
-    private String correctServerIP;
-    private String correctServerPort;
+    private String defaultBackendAddress = "192.168.1.168:8000";
+//    private String defaultServerPort = "5000";
+    private String correctBackendAddress;
+//    private String correctServerPort;
     private Boolean backendFound;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -105,29 +91,29 @@ public class MainActivity extends AppCompatActivity {
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_main);
 
-        String testIP = defaultServerIP;
-        String testPort = defaultServerPort;
+        String testBackendAddress = defaultBackendAddress;
+//        String testPort = defaultServerPort;
 
         Intent intent = getIntent();
-        String correctIP = intent.getStringExtra("correctIP");
-        String correctPort = intent.getStringExtra("correctPort");
+        String correctIP = intent.getStringExtra("correctBackendAddress");
+//        String correctPort = intent.getStringExtra("correctPort");
         if (correctIP != null) { //If a correct IP has been tested and given by ServerConfigurationActivity, Use this to pass test checks. Otherwise keep as default
-            testIP = correctIP;
-            testPort = correctPort;
-            Log.d("Connection to Flask Backend", "Correct Backend address provided: " + testIP + ":" + testPort);
+            testBackendAddress = correctIP;
+//            testPort = correctPort;
+            Log.d("Connection to Flask Backend", "Correct Backend address provided: " + testBackendAddress + ":");
         }
 
         helpButton = findViewById(R.id.btnHelp);
         helpButton.setOnClickListener(v -> {
             Intent showHelp = new Intent(this, HelpActivity.class);
-            showHelp.putExtra("correctIP", correctServerIP);
-            showHelp.putExtra("correctPort", correctServerPort);
+            showHelp.putExtra("correctAddress", correctBackendAddress);
+//            showHelp.putExtra("correctPort", correctServerPort);
             startActivity(showHelp);
         });
         helpButton.setEnabled(false);
 
         backendFound = false;
-        testFlaskConnection(testIP, testPort); //Test connection with backend and handle accordingly
+        testFlaskConnection(testBackendAddress); //Test connection with backend and handle accordingly
 
         //Confirm OpenCV initialised properly
         if (!OpenCVLoader.initDebug()) {
@@ -164,8 +150,8 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    private void testFlaskConnection(String ip, String port) {
-        ServerConfigurationActivity.probeServerAndWaitForResponse(ip, port, result -> {
+    private void testFlaskConnection(String address) {
+        ServerConfigurationActivity.probeServerAndWaitForResponse(address, result -> {
             Log.d("Flask backend test", result);
             if (result.contains("Error") | result.contains("Failed") | result.contains("Timed out")) {//If cannot connect using default value
                 backendFound = false;
@@ -176,8 +162,8 @@ public class MainActivity extends AppCompatActivity {
             }
             else {
                 //If the address tested is correct, set as the correct address
-                correctServerIP = ip;
-                correctServerPort = port;
+                correctBackendAddress = address;
+//                correctServerPort = port;
                 backendFound = true;
                 helpButton.setEnabled(true);
             }
@@ -404,8 +390,8 @@ public class MainActivity extends AppCompatActivity {
 //        intent.putExtra("intrinsicMatrix", matrixData);
 
 
-        intent.putExtra("correctIP", correctServerIP);
-        intent.putExtra("correctPort", correctServerPort);
+        intent.putExtra("correctServerAddress", correctBackendAddress);
+//        intent.putExtra("correctPort", correctServerPort);
         startActivity(intent);
     }
 

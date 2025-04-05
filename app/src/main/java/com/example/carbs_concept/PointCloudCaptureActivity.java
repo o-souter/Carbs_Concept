@@ -52,7 +52,7 @@ public class PointCloudCaptureActivity extends AppCompatActivity {
     private ConstraintLayout pointCloudInfoAlert;
     //Data imported from image capture
     private String imagePath;
-    private String ipForBackend;
+    private String backendUrl;
     private String portForBackend;
 
     @Override
@@ -68,8 +68,8 @@ public class PointCloudCaptureActivity extends AppCompatActivity {
         pointCloudInfoAlert.setVisibility(View.VISIBLE);
         imagePath = intent.getStringExtra("imagePath");
 
-        ipForBackend = intent.getStringExtra("correctIP");
-        portForBackend = intent.getStringExtra("correctPort");
+        backendUrl = intent.getStringExtra("correctServerAddress");
+//        portForBackend = intent.getStringExtra("correctPort");
 
         arFragment = (ArFragment) getSupportFragmentManager().findFragmentById(R.id.arFragment);
         isCapturing = true;
@@ -306,8 +306,8 @@ public class PointCloudCaptureActivity extends AppCompatActivity {
         Intent intent = new Intent(this, AnalysisActivity.class);
         intent.putExtra("imagePath", imagePath);
         intent.putExtra("pointCloudPath", pointCloudFile.getAbsolutePath());
-        intent.putExtra("correctIP", ipForBackend);
-        intent.putExtra("correctPort", portForBackend);
+        intent.putExtra("correctServerAddress", backendUrl);
+//        intent.putExtra("correctPort", portForBackend);
 
         startActivity(intent);
     }

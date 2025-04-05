@@ -3,6 +3,8 @@ package com.example.carbs_concept;
 import android.content.Intent;
 import android.graphics.Color;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 import android.widget.Button;
 import android.widget.EditText;
@@ -23,8 +25,8 @@ import okhttp3.Request;
 import okhttp3.Response;
 
 public class ServerConfigurationActivity extends AppCompatActivity {
-    private EditText etIP;
-    private EditText etPort;
+    private EditText etBackendAddress;
+//    private EditText etPort;
     private Button btnConfigure;
     private TextView tvConnectTestFeedback;
 
@@ -35,12 +37,12 @@ public class ServerConfigurationActivity extends AppCompatActivity {
         setContentView(R.layout.activity_server_configuration);
 
 
-        etIP = findViewById(R.id.etIP);
-        etPort = findViewById(R.id.etPort);
+        etBackendAddress = findViewById(R.id.etBackendAddress);
+//        etPort = findViewById(R.id.etPort);
         btnConfigure = findViewById(R.id.btnConfigure);
         tvConnectTestFeedback = findViewById(R.id.tvConnectTestFeedback);
         btnConfigure.setOnClickListener(v -> {
-            testServerConnection(etIP.getText().toString(), etPort.getText().toString());
+            testServerConnection(etBackendAddress.getText().toString());//, etPort.getText().toString());
         });
 
 
@@ -51,16 +53,16 @@ public class ServerConfigurationActivity extends AppCompatActivity {
         });
     }
 
-    private void testServerConnection(String ip, String port) {
+    private void testServerConnection(String address) {
 
         tvConnectTestFeedback.setText("Testing connection...");
-        if (ip == "") {
+        if (address == "") {
             tvConnectTestFeedback.setText("Error: Invalid server address");
             tvConnectTestFeedback.setTextColor(Color.RED);
             return;
         }
 
-        probeServerAndWaitForResponse(ip, port, result -> {
+        probeServerAndWaitForResponse(address, result -> {
             if (result.contains("Error")) {
                 runOnUiThread(() -> {
                     tvConnectTestFeedback.setText("Connection failed: " + result);
@@ -73,9 +75,9 @@ public class ServerConfigurationActivity extends AppCompatActivity {
                     tvConnectTestFeedback.setTextColor(Color.GREEN);
 
                     Intent intent = new Intent(this, MainActivity.class);
-                    intent.putExtra("correctIP", ip);
-                    intent.putExtra("correctPort", port);
-                    Log.d("Connection to Flask backend", "Correct server address found at " + ip + ":" + port);
+                    intent.putExtra("correctBackendAddress", address);
+//                    intent.putExtra("correctPort", port);
+                    Log.d("Connection to Flask backend", "Correct server address found at " + address);
                     startActivity(intent);
                 });
             }
@@ -90,40 +92,75 @@ public class ServerConfigurationActivity extends AppCompatActivity {
     }
 
 
-    public static void probeServerAndWaitForResponse(String ip, String port, ServerCallBack callBack) {
+    public static void probeServerAndWaitForResponse(String partialAddress, ServerCallBack callBack) {
         OkHttpClient client = new OkHttpClient();
-        String address = "http://" + ip + ":" + port + "/test";
+        String address = "http://" + partialAddress + "/test";
         Log.d("Server Probe", "Probing server at " + address);
         Request request;
+        Handler mainHandler = new Handler(Looper.getMainLooper()); // Get UI thread handler
+
         try {
             request = new Request.Builder().url(address).build();
-        }
-        catch (java.lang.IllegalArgumentException e) {
-
+        } catch (java.lang.IllegalArgumentException e) {
             return;
         }
-
 
         client.newCall(request).enqueue(new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
                 e.printStackTrace();
                 Log.e("OkHTTP Server Test", "Failed: " + e.getMessage());
-                callBack.onResult("Error: " + e.getMessage());
+
+                mainHandler.post(() -> callBack.onResult("Error: " + e.getMessage())); // Run callback on UI thread
             }
+
             @Override
             public void onResponse(Call call, Response response) throws IOException {
                 if (response.isSuccessful()) {
                     String response_str = response.body().string();
-                    Log.d("OkHTTP Server Test", "Success: "+ response_str);
-                    callBack.onResult(response_str);
-                }
-                else {
-                    Log.e("OkHTTP Server Test", "Error: "+response.code());
-                    callBack.onResult("Error: " + response.code());
+                    Log.d("OkHTTP Server Test", "Success: " + response_str);
+
+                    mainHandler.post(() -> callBack.onResult(response_str)); // Run callback on UI thread
+                } else {
+                    Log.e("OkHTTP Server Test", "Error: " + response.code());
+
+                    mainHandler.post(() -> callBack.onResult("Error: " + response.code())); // Run callback on UI thread
                 }
             }
         });
+//        OkHttpClient client = new OkHttpClient();
+//        String address = "http://" + partialAddress + "/test";
+//        Log.d("Server Probe", "Probing server at " + address);
+//        Request request;
+//        try {
+//            request = new Request.Builder().url(address).build();
+//        }
+//        catch (java.lang.IllegalArgumentException e) {
+//
+//            return;
+//        }
+//
+//
+//        client.newCall(request).enqueue(new Callback() {
+//            @Override
+//            public void onFailure(Call call, IOException e) {
+//                e.printStackTrace();
+//                Log.e("OkHTTP Server Test", "Failed: " + e.getMessage());
+//                callBack.onResult("Error: " + e.getMessage());
+//            }
+//            @Override
+//            public void onResponse(Call call, Response response) throws IOException {
+//                if (response.isSuccessful()) {
+//                    String response_str = response.body().string();
+//                    Log.d("OkHTTP Server Test", "Success: "+ response_str);
+//                    callBack.onResult(response_str);
+//                }
+//                else {
+//                    Log.e("OkHTTP Server Test", "Error: "+response.code());
+//                    callBack.onResult("Error: " + response.code());
+//                }
+//            }
+//        });
 
     }
 }

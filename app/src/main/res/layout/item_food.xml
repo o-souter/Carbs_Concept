@@ -29,11 +29,11 @@
 
             <TextView
                 android:id="@+id/foodTextView"
-                android:layout_width="match_parent"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Food Item"
                 android:textColor="#000000"
-                android:textSize="16sp"
+                android:textSize="20sp"
                 android:textStyle="bold" />
 
             <TextView
@@ -63,7 +63,15 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="Volume: 0cm^3" />
+
         </LinearLayout>
+
+        <ImageButton
+            android:id="@+id/btnRemoveItem"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:background="@color/beige"
+            app:srcCompat="@android:drawable/btn_dialog" />
 
     </LinearLayout>
 </androidx.cardview.widget.CardView>

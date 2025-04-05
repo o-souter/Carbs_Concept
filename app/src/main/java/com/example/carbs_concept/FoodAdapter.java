@@ -2,16 +2,21 @@ package com.example.carbs_concept;
 
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 public class FoodAdapter extends RecyclerView.Adapter<FoodAdapter.FoodViewHolder> {
     private List<IndividualFoodItem> foodList;
@@ -27,6 +32,8 @@ public class FoodAdapter extends RecyclerView.Adapter<FoodAdapter.FoodViewHolder
         TextView confidenceView;
         TextView weightView;
         TextView volumeView;
+        ImageButton deleteBtn;
+        String uniqueId;
 
         public FoodViewHolder(View itemView){
             super(itemView);
@@ -36,6 +43,8 @@ public class FoodAdapter extends RecyclerView.Adapter<FoodAdapter.FoodViewHolder
             confidenceView = itemView.findViewById(R.id.confidenceTextView);
             weightView = itemView.findViewById(R.id.weightTextView);
             volumeView = itemView.findViewById(R.id.volumeTextView);
+            deleteBtn = itemView.findViewById(R.id.btnRemoveItem);
+            String uniqueId = "";
         }
     }
 
@@ -52,8 +61,7 @@ public class FoodAdapter extends RecyclerView.Adapter<FoodAdapter.FoodViewHolder
         String imagePath = foodItem.getImagePath();
         if (imagePath == null) { //Invalid detection
             holder.imageView.setImageResource(android.R.drawable.ic_menu_report_image);
-        }
-        else {
+        } else {
             Bitmap imgBitmap = BitmapFactory.decodeFile(foodItem.getImagePath());
             holder.imageView.setImageBitmap(imgBitmap);
         }
@@ -63,9 +71,39 @@ public class FoodAdapter extends RecyclerView.Adapter<FoodAdapter.FoodViewHolder
         holder.confidenceView.setText("Confidence: " + foodItem.getDetectionConfidence() + "%");
         holder.weightView.setText("Estimated weight: " + foodItem.getEstimatedWeight() + "g");
         holder.volumeView.setText("Estimated volume: " + foodItem.getEstimatedVolume() + "cm^3");
+//        holder.uniqueId = foodItem.getDescription() + "_" + foodItem.getEstimatedVolume();
+        holder.deleteBtn.setOnClickListener(v -> {
+            removeItem(foodItem.getUniqueId());
+//            notifyDataSetChanged();
+//            notifyItemRemoved(position);
+        });
     }
+
     @Override
     public int getItemCount() {
         return foodList.size();
+    }
+
+    public List<IndividualFoodItem> getFoodItems() {
+        return foodList;
+    }
+
+    public void removeItem(String idOfItemToDelete) {
+        // Find the position of the item to delete
+        int positionToRemove = -1;
+        for (int i = 0; i < foodList.size(); i++) {
+            if (Objects.equals(foodList.get(i).getUniqueId(), idOfItemToDelete)) {
+                positionToRemove = i;
+                break;
+            }
+        }
+
+        // If item exists, remove it from the list and notify the adapter
+        if (positionToRemove != -1) {
+            foodList.remove(positionToRemove);
+            notifyItemRemoved(positionToRemove);
+            notifyItemRangeChanged(positionToRemove, foodList.size());  // Update the list after removal
+            Log.d("FoodAdapter", "Removed item with id " + idOfItemToDelete);
+        }
     }
 }
