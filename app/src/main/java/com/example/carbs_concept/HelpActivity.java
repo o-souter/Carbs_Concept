@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import okhttp3.Call;
@@ -167,6 +168,7 @@ public class HelpActivity extends AppCompatActivity {
     private void updateFoodClassList(List<String> foodList) {
         // Update UI on the main thread
         runOnUiThread(() -> {
+            Collections.sort(foodList);
             ArrayAdapter<String> adapter = new ArrayAdapter<>(
                     HelpActivity.this,
                     android.R.layout.simple_list_item_1,
