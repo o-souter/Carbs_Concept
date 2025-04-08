@@ -14,13 +14,14 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
 public class FoodAdapter extends RecyclerView.Adapter<FoodAdapter.FoodViewHolder> {
     private List<IndividualFoodItem> foodList;
-
+    private static final DecimalFormat df = new DecimalFormat("0.00");
     public FoodAdapter(List<IndividualFoodItem> foodList) {
         this.foodList = foodList;
     }
@@ -34,6 +35,7 @@ public class FoodAdapter extends RecyclerView.Adapter<FoodAdapter.FoodViewHolder
         TextView volumeView;
         ImageButton deleteBtn;
         String uniqueId;
+
 
         public FoodViewHolder(View itemView){
             super(itemView);
@@ -67,16 +69,20 @@ public class FoodAdapter extends RecyclerView.Adapter<FoodAdapter.FoodViewHolder
         }
 
         holder.textView.setText(foodItem.getDescription());
-        holder.carbsView.setText("Carbohydrates: " + foodItem.getGramsCarbs() + "g");
+        holder.carbsView.setText("Carbohydrates: " + df.format(foodItem.getGramsCarbs()) + "g");
         holder.confidenceView.setText("Confidence: " + foodItem.getDetectionConfidence() + "%");
-        holder.weightView.setText("Estimated weight: " + foodItem.getEstimatedWeight() + "g");
-        holder.volumeView.setText("Estimated volume: " + foodItem.getEstimatedVolume() + "cm^3");
+        holder.weightView.setText("Estimated weight: " + df.format(foodItem.getEstimatedWeight()) + "g");
+        holder.volumeView.setText("Estimated volume: " + df.format(foodItem.getEstimatedVolume()) + "cm³");
 //        holder.uniqueId = foodItem.getDescription() + "_" + foodItem.getEstimatedVolume();
         holder.deleteBtn.setOnClickListener(v -> {
             removeItem(foodItem.getUniqueId());
 //            notifyDataSetChanged();
 //            notifyItemRemoved(position);
         });
+
+        if (!foodItem.isCloseable()) {
+            holder.deleteBtn.setVisibility(View.INVISIBLE);
+        }
     }
 
     @Override

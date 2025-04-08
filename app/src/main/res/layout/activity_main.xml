@@ -19,39 +19,41 @@
         app:layout_constraintTop_toTopOf="parent"
         app:srcCompat="@mipmap/carbs_icon" />
 
-<!--    <androidx.camera.view.PreviewView-->
-<!--        android:id="@+id/previewView"-->
-<!--        android:layout_width="match_parent"-->
-<!--        android:layout_height="0dp"-->
-<!--        android:background="#FFFFFF"-->
-<!--        android:visibility="invisible"-->
-<!--        app:layout_constraintBottom_toTopOf="@+id/captureButton"-->
-<!--        app:layout_constraintEnd_toEndOf="parent"-->
-<!--        app:layout_constraintStart_toStartOf="parent"-->
-<!--        app:layout_constraintTop_toTopOf="parent">-->
+    <!--    <androidx.camera.view.PreviewView-->
+    <!--        android:id="@+id/previewView"-->
+    <!--        android:layout_width="match_parent"-->
+    <!--        android:layout_height="0dp"-->
+    <!--        android:background="#FFFFFF"-->
+    <!--        android:visibility="invisible"-->
+    <!--        app:layout_constraintBottom_toTopOf="@+id/captureButton"-->
+    <!--        app:layout_constraintEnd_toEndOf="parent"-->
+    <!--        app:layout_constraintStart_toStartOf="parent"-->
+    <!--        app:layout_constraintTop_toTopOf="parent">-->
 
 
-<!--    </androidx.camera.view.PreviewView>-->
+    <!--    </androidx.camera.view.PreviewView>-->
 
 
     <!--    <ImageView-->
-<!--        android:id="@+id/overlayImageView"-->
-<!--        android:layout_width="wrap_content"-->
-<!--        android:layout_height="wrap_content"-->
-<!--        android:layout_gravity="center"-->
-<!--        app:layout_constraintTop_toTopOf="parent"-->
-<!--        app:layout_constraintBottom_toTopOf="@+id/captureButton"-->
-<!--        app:layout_constraintStart_toStartOf="parent"-->
-<!--        app:layout_constraintEnd_toEndOf="parent"-->
-<!--        android:visibility="gone"-->
-<!--        app:srcCompat="@drawable/ic_launcher_foreground" />-->
+    <!--        android:id="@+id/overlayImageView"-->
+    <!--        android:layout_width="wrap_content"-->
+    <!--        android:layout_height="wrap_content"-->
+    <!--        android:layout_gravity="center"-->
+    <!--        app:layout_constraintTop_toTopOf="parent"-->
+    <!--        app:layout_constraintBottom_toTopOf="@+id/captureButton"-->
+    <!--        app:layout_constraintStart_toStartOf="parent"-->
+    <!--        app:layout_constraintEnd_toEndOf="parent"-->
+    <!--        android:visibility="gone"-->
+    <!--        app:srcCompat="@drawable/ic_launcher_foreground" />-->
 
     <Button
         android:id="@+id/captureButton"
         android:layout_width="276dp"
         android:layout_height="73dp"
         android:layout_marginBottom="16dp"
+        android:backgroundTint="@color/darkerbeige"
         android:text="Capture"
+        android:textSize="24sp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
@@ -86,8 +88,10 @@
         android:id="@+id/btnHelp"
         android:layout_width="65dp"
         android:layout_height="65dp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
+        android:background="@drawable/rounded_onlybottomright"
+        android:backgroundTint="@color/darkerbeige"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="@+id/liveImageView"
         app:srcCompat="@android:drawable/ic_menu_help" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

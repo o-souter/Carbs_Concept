@@ -198,13 +198,6 @@ public class MainActivity extends AppCompatActivity {
         }
 
     }
-//    private void releaseCamera() {
-//        if (cameraProvider != null) {
-//            cameraProvider.unbindAll();
-//            cameraProvider = null;
-//            Log.d("CameraX", "Camera released successfully.");
-//        }
-//    }
 
 
     private void analyseFrame(ImageProxy imageProxy) {
@@ -241,7 +234,7 @@ public class MainActivity extends AppCompatActivity {
             Bitmap rgbBitmap = Bitmap.createBitmap(frame.cols(), frame.rows(), Bitmap.Config.ARGB_8888);
             Utils.matToBitmap(rgbFrame, rgbBitmap);
 
-            Mat rotatedFrame = rotateMat(frame, 270);
+//            Mat rotatedFrame = rotateMat(frame, 270);
             liveImageView.setImageBitmap(rgbBitmap);
 
             if (!markerIds.empty()) {
@@ -273,7 +266,7 @@ public class MainActivity extends AppCompatActivity {
                     }
                     else {
                         captureButton.setEnabled(false);
-                        captureButton.setText("Awaiting connection to backend...");
+                        captureButton.setText("Connecting...");
                     }
 
 
@@ -287,7 +280,7 @@ public class MainActivity extends AppCompatActivity {
 //                    captureButton.setEnabled(false);
                     if (backendFound) {
                         captureButton.setEnabled(true);
-                        captureButton.setText("Capture when ready!");
+                        captureButton.setText("Capture");
                     }
                     else {
                         captureButton.setEnabled(false);

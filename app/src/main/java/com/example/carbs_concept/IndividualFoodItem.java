@@ -1,5 +1,7 @@
 package com.example.carbs_concept;
 
+import java.text.DecimalFormat;
+
 public class IndividualFoodItem {
     private String imagePath;
     private String description;
@@ -8,7 +10,10 @@ public class IndividualFoodItem {
     private double estimatedVolume;
     private double detectionConfidence;
     private String uniqueId;
-    public IndividualFoodItem(String imagePath, String description, double gramsCarbs, double estimatedWeight, double estimatedVolume, double detectionConfidence) {
+    private boolean closeable;
+
+
+    public IndividualFoodItem(String imagePath, String description, double gramsCarbs, double estimatedWeight, double estimatedVolume, double detectionConfidence, boolean closeable) {
         this.imagePath = imagePath;
         this.description = description;
         this.gramsCarbs = gramsCarbs;
@@ -16,6 +21,7 @@ public class IndividualFoodItem {
         this.estimatedVolume = estimatedVolume;
         this.detectionConfidence = detectionConfidence;
         this.uniqueId = this.description + "_" + this.estimatedWeight;
+        this.closeable = closeable;
     }
 
     public String getImagePath() {
@@ -45,6 +51,9 @@ public class IndividualFoodItem {
     public int getDetectionConfidence() {
         return (int)(detectionConfidence*100);
 
+    }
+    public boolean isCloseable() {
+        return closeable;
     }
 
     public String getUniqueId() {

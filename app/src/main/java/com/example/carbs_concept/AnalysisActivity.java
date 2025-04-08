@@ -32,6 +32,7 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -75,6 +76,9 @@ public class AnalysisActivity extends AppCompatActivity {
 
     private TextView tvMarkerStatus;
 
+    private int responseTimeOut = 200;
+
+    private static final DecimalFormat df = new DecimalFormat("0.00");
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -88,7 +92,7 @@ public class AnalysisActivity extends AppCompatActivity {
 //        portForBackend = intent.getStringExtra("correctPort");
 
         BitmapFactory.Options bmOptions= new BitmapFactory.Options();
-        imageBitmap = rotateBitmap(BitmapFactory.decodeFile(imagePath, bmOptions), 90);
+//        imageBitmap = rotateBitmap(BitmapFactory.decodeFile(imagePath, bmOptions), 90);
         segmentedImgView = findViewById(R.id.segmentedImgView);
         progressBar = findViewById(R.id.progressBar);
 //        progressBar.setVisibility(View.INVISIBLE);
@@ -100,6 +104,7 @@ public class AnalysisActivity extends AppCompatActivity {
         tvMarkerStatus = findViewById(R.id.tvMarkerStatus);
         btnBackToCamera.setOnClickListener(v -> {
             Intent backToCamera = new Intent(this, MainActivity.class);
+            backToCamera.putExtra("correctBackendAddress", backendUrl);
             startActivity(backToCamera);
         });
 
@@ -124,7 +129,7 @@ public class AnalysisActivity extends AppCompatActivity {
         OkHttpClient client = new OkHttpClient.Builder()
                 .connectTimeout(10, TimeUnit.SECONDS)
                 .writeTimeout(10, TimeUnit.SECONDS)
-                .readTimeout(30, TimeUnit.SECONDS)
+                .readTimeout(responseTimeOut, TimeUnit.SECONDS)
                 .build();
         File imageFile = new File(imagePath);
         File pointCloudFile = new File(pointCloudPath);
@@ -310,7 +315,7 @@ public class AnalysisActivity extends AppCompatActivity {
                 tvMarkerStatus.setText("Warning: marker not found. Data will not be accurate.");
                 tvMarkerStatus.setTextColor(Color.RED);
             }
-            txtCarbBreakdown.setText("Total Carbs: " + totals.get(0) + "g" +"\nTotal Volume: " + totals.get(1) + "cm^3" + "\nTotal Weight: " + totals.get(2) + "g");
+            txtCarbBreakdown.setText("Total Carbs: " + df.format(totals.get(0)) + "g" +"\nTotal Volume: " + df.format(totals.get(1)) + "cm³" + "\nTotal Weight: " + df.format(totals.get(2)) + "g");
             //Finally, remove the loading progressbar to show that processing is complete
             progressBar.setVisibility(View.INVISIBLE);
             textStatus.setText("Successfully processed food data");
@@ -328,7 +333,7 @@ public class AnalysisActivity extends AppCompatActivity {
             totalVolume += foodItem.getEstimatedVolume();
             totalWeight += foodItem.getEstimatedWeight();
         }
-        updateTxtBreakdown("Total Carbs: " + totalCarbs + "g" +"\nTotal Volume: " + totalVolume + "cm^3" + "\nTotal Weight: " + totalWeight + "g");
+        updateTxtBreakdown("Total Carbs: " + df.format(totalCarbs) + "g" +"\nTotal Volume: " + df.format(totalVolume) + "cm³" + "\nTotal Weight: " + df.format(totalWeight) + "g");
 //        txtCarbBreakdown.setText();
 
     }
@@ -356,8 +361,7 @@ public class AnalysisActivity extends AppCompatActivity {
         }
     }
 
-    private ArrayList<Double> getFoodDataFromFile(){//File foodDataFile) {
-//        ArrayList foodItems = new ArrayList<IndividualFoodItem>();
+    private ArrayList<Double> getFoodDataFromFile(){
         Map<String, List<Double>> foodDataMap = new HashMap<>();
         double totalCarbs = 0.0;
         double totalVolume = 0.0;
@@ -420,8 +424,7 @@ public class AnalysisActivity extends AppCompatActivity {
         return totalsList;
     }
 
-    public void updateRvFoodlist(){//Map<String, List<Double>> foodsAndInfo) {
-        //Configure and set up the Recycler view with the food items received from backend
+    public void updateRvFoodlist(){
         foodItems = new ArrayList<>();
         if (!foodsAndInfo.isEmpty()) {
             int img_idx = 0;
@@ -434,13 +437,13 @@ public class AnalysisActivity extends AppCompatActivity {
                 Double estimatedWeight = counts.get(3);
                 File detectionImg = new File(getFilesDir() + "/response_data/", "detection_" + foodName + ".png");
                 String detectionImgPath = detectionImg.exists() ? detectionImg.getAbsolutePath() : null;
-                foodItems.add(new IndividualFoodItem(detectionImgPath, foodName, carbCount, estimatedWeight, estimatedVolume, confidence));
+                foodItems.add(new IndividualFoodItem(detectionImgPath, foodName, carbCount, estimatedWeight, estimatedVolume, confidence, true));
                 Log.d("UpdateRvFoodList", "Added food item: " + detectionImgPath);
                 img_idx += 1;
             }
         }
         else {
-            foodItems.add(new IndividualFoodItem(null, "No recognisable food items found. Please try capturing again!", 0.0, 0.0, 0.0, 0.0));
+            foodItems.add(new IndividualFoodItem(null, "No recognisable food items found. Please try capturing again!", 0.0, 0.0, 0.0, 0.0, false));
         } //Reference:	@android:drawable/ic_menu_report_image
 
 
