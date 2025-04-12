@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Carbs_Concept</string>
+    <string name="app_name">CARBS CaptureTool</string>
     <string name="configuring_connection_with_flask_backend">Configuring Connection with flask backend...</string>
     <string name="processing">Processing...</string>
     <string name="warning_marker_not_found">Warning: marker not found. Data will not be accurate.</string>
