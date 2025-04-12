@@ -46,7 +46,7 @@
         app:layout_constraintVertical_bias="0.218">
 
         <TextView
-            android:id="@+id/txtPointCloudInfo"
+            android:id="@+id/txtAlertInfo"
             android:layout_width="260dp"
             android:layout_height="153dp"
             android:padding="20px"
@@ -64,7 +64,7 @@
             android:layout_width="70dp"
             android:layout_height="71dp"
             app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toStartOf="@+id/txtPointCloudInfo"
+            app:layout_constraintEnd_toStartOf="@+id/txtAlertInfo"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
             app:srcCompat="@android:drawable/ic_dialog_info" />

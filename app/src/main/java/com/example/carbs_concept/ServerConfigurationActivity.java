@@ -29,7 +29,8 @@ public class ServerConfigurationActivity extends AppCompatActivity {
 //    private EditText etPort;
     private Button btnConfigure;
     private TextView tvConnectTestFeedback;
-
+    private Button btnAddAzureBackend;
+    public String backendIP = "carbs-processing-backend-f5amajgfbue8bxbq.ukwest-01.azurewebsites.net";
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -41,8 +42,12 @@ public class ServerConfigurationActivity extends AppCompatActivity {
 //        etPort = findViewById(R.id.etPort);
         btnConfigure = findViewById(R.id.btnConfigure);
         tvConnectTestFeedback = findViewById(R.id.tvConnectTestFeedback);
+        btnAddAzureBackend = findViewById(R.id.btnAddAzureBackend);
         btnConfigure.setOnClickListener(v -> {
             testServerConnection(etBackendAddress.getText().toString());//, etPort.getText().toString());
+        });
+        btnAddAzureBackend.setOnClickListener(v -> {
+            etBackendAddress.setText(backendIP);
         });
 
 
@@ -94,6 +99,8 @@ public class ServerConfigurationActivity extends AppCompatActivity {
 
     public static void probeServerAndWaitForResponse(String partialAddress, ServerCallBack callBack) {
         OkHttpClient client = new OkHttpClient();
+        partialAddress = partialAddress.replace("http://", "");
+        partialAddress = partialAddress.replace("https://", "");
         String address = "http://" + partialAddress + "/test";
         Log.d("Server Probe", "Probing server at " + address);
         Request request;
@@ -128,6 +135,7 @@ public class ServerConfigurationActivity extends AppCompatActivity {
                 }
             }
         });
+    }
 //        OkHttpClient client = new OkHttpClient();
 //        String address = "http://" + partialAddress + "/test";
 //        Log.d("Server Probe", "Probing server at " + address);
@@ -162,5 +170,5 @@ public class ServerConfigurationActivity extends AppCompatActivity {
 //            }
 //        });
 
-    }
+
 }

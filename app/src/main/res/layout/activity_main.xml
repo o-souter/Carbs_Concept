@@ -46,6 +46,60 @@
     <!--        android:visibility="gone"-->
     <!--        app:srcCompat="@drawable/ic_launcher_foreground" />-->
 
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/alertInfo"
+        android:layout_width="351dp"
+        android:layout_height="173dp"
+        android:background="@drawable/rounded_background"
+        android:backgroundTint="@color/black"
+        app:layout_constraintBottom_toBottomOf="@+id/liveImageView"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <TextView
+            android:id="@+id/txtAlertInfo"
+            android:layout_width="255dp"
+            android:layout_height="97dp"
+            android:layout_marginEnd="16dp"
+            android:padding="20px"
+            android:paddingLeft="20px"
+            android:paddingTop="10px"
+            android:text="..."
+            android:textColor="@color/white"
+            android:textSize="20sp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintVertical_bias="0.21" />
+
+        <ImageView
+            android:id="@+id/imageView"
+            android:layout_width="70dp"
+            android:layout_height="71dp"
+            app:layout_constraintBottom_toBottomOf="@+id/txtAlertInfo"
+            app:layout_constraintEnd_toStartOf="@+id/txtAlertInfo"
+            app:layout_constraintHorizontal_bias="0.25"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="@+id/txtAlertInfo"
+            app:layout_constraintVertical_bias="0.538"
+            app:srcCompat="@mipmap/carbs_icon" />
+
+        <Button
+            android:id="@+id/btnOk"
+            android:layout_width="78dp"
+            android:layout_height="53dp"
+            android:layout_marginTop="8dp"
+            android:backgroundTint="@color/black"
+            android:text="OK!"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.943"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/txtAlertInfo"
+            app:layout_constraintVertical_bias="1.0" />
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
     <Button
         android:id="@+id/captureButton"
         android:layout_width="276dp"
@@ -90,8 +144,9 @@
         android:layout_height="65dp"
         android:background="@drawable/rounded_onlybottomright"
         android:backgroundTint="@color/darkerbeige"
+        android:src="@android:drawable/ic_dialog_info"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="@+id/liveImageView"
-        app:srcCompat="@android:drawable/ic_menu_help" />
+        tools:srcCompat="@android:drawable/ic_dialog_info" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

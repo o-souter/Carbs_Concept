@@ -15,6 +15,7 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import androidx.activity.EdgeToEdge;
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
@@ -29,9 +30,6 @@ import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -54,11 +52,9 @@ import okhttp3.RequestBody;
 import okhttp3.Response;
 
 public class AnalysisActivity extends AppCompatActivity {
-    private static final String TAG = "AnalysisActivity";
     private String imagePath;
-    private String pointCloudPath;
+//    private String pointCloudPath;
     private ImageView segmentedImgView;
-    private Bitmap imageBitmap;
     private ProgressBar progressBar;
     private TextView textStatus;
     private ImageButton btnBackToCamera;
@@ -76,8 +72,8 @@ public class AnalysisActivity extends AppCompatActivity {
 
     private TextView tvMarkerStatus;
 
-    private int responseTimeOut = 200;
-
+    private int responseTimeOut = 600;
+    private boolean alertRead;
     private static final DecimalFormat df = new DecimalFormat("0.00");
 
     @Override
@@ -87,15 +83,12 @@ public class AnalysisActivity extends AppCompatActivity {
         setContentView(R.layout.activity_analysis);
         Intent intent = getIntent();
         imagePath = intent.getStringExtra("imagePath");
-        pointCloudPath = intent.getStringExtra("pointCloudPath");
+//        pointCloudPath = intent.getStringExtra("pointCloudPath");
         backendUrl = intent.getStringExtra("correctServerAddress");
-//        portForBackend = intent.getStringExtra("correctPort");
+        alertRead = intent.getBooleanExtra("alertRead", false);
 
-        BitmapFactory.Options bmOptions= new BitmapFactory.Options();
-//        imageBitmap = rotateBitmap(BitmapFactory.decodeFile(imagePath, bmOptions), 90);
         segmentedImgView = findViewById(R.id.segmentedImgView);
         progressBar = findViewById(R.id.progressBar);
-//        progressBar.setVisibility(View.INVISIBLE);
         textStatus = findViewById(R.id.textStatus);
         btnBackToCamera = findViewById(R.id.btnBackToCamera);
         rvFoodList = findViewById(R.id.rvFoodList);
@@ -105,6 +98,7 @@ public class AnalysisActivity extends AppCompatActivity {
         btnBackToCamera.setOnClickListener(v -> {
             Intent backToCamera = new Intent(this, MainActivity.class);
             backToCamera.putExtra("correctBackendAddress", backendUrl);
+            backToCamera.putExtra("alertRead", true);
             startActivity(backToCamera);
         });
 
@@ -115,14 +109,12 @@ public class AnalysisActivity extends AppCompatActivity {
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
         });
-        textStatus.setText("Configuring Connection with flask backend...");
-        uploadData(imagePath, pointCloudPath);
+        textStatus.setText(R.string.configuring_connection_with_flask_backend);
+        uploadData(imagePath);
 
     }
 
-
-    private void uploadData(String imagePath, String pointCloudPath) {
-
+    private void uploadData(String imagePath) {
         progressBar.setVisibility(View.VISIBLE);
         progressBar.bringToFront();
 //        OkHttpClient client = new OkHttpClient();
@@ -132,12 +124,10 @@ public class AnalysisActivity extends AppCompatActivity {
                 .readTimeout(responseTimeOut, TimeUnit.SECONDS)
                 .build();
         File imageFile = new File(imagePath);
-        File pointCloudFile = new File(pointCloudPath);
-        if (!imageFile.exists() | !pointCloudFile.exists()) {
+//        File pointCloudFile = new File(pointCloudPath);
+        if (!imageFile.exists()){
             Log.e("OkHTTP Image Upload", "Files for upload not found.");
-            textStatus.setText("Unable to find file:\n" +
-                    "Image exists: " + imageFile.exists() + "\n" +
-                    "PointCloud exists: " + pointCloudFile.exists());
+            textStatus.setText(R.string.error_unable_to_upload_file);
             textStatus.setTextColor(Color.RED);
             return;
         }
@@ -146,35 +136,34 @@ public class AnalysisActivity extends AppCompatActivity {
                 .setType(MultipartBody.FORM)
                 .addFormDataPart("image", imageFile.getName(),
                         RequestBody.create(imageFile, MediaType.parse("image/jpeg")))
-                .addFormDataPart("pointcloud", pointCloudFile.getName(),
-                        RequestBody.create(pointCloudFile, MediaType.parse("text/plain")))
+//                .addFormDataPart("pointcloud", pointCloudFile.getName(),
+//                        RequestBody.create(pointCloudFile, MediaType.parse("text/plain")))
                 .build();
 
         //Create request itself
         String url = "http://" + backendUrl;
         Request request = new Request.Builder()
-                .url(url+"/"+"upload-data")
+                .url(url+"/upload-data")
                 .post(requestBody)
                 .build();
 
         //Execute request in background
-        textStatus.setText("Processing...");
+        textStatus.setText(R.string.processing);
+        Log.d("OkHTTP Image Upload", "Creating image upload request to: " + request.url());
         client.newCall(request).enqueue(new Callback() {
             @Override
-            public void onFailure(Call call, IOException e) {
+            public void onFailure(@NonNull Call call, @NonNull IOException e) {
                 e.printStackTrace();
                 Log.e("OkHTTP Image Upload", "Failed: " + e.getMessage());
                 runOnUiThread(() -> textStatus.setText("Request Failed: " + e.getMessage()));
             }
             @Override
-            public void onResponse(Call call, Response response) throws IOException {
+            public void onResponse(@NonNull Call call, @NonNull Response response) {
                 if (response.isSuccessful()) {
-//                    String response_str = response.body().string();
                     Log.d("OkHTTP Upload", "Success");
-//                    runOnUiThread(() -> textStatus.setText("Image successfully sent to flask server! \nPress back to take another."));
+
                     InputStream responseZipStream = response.body().byteStream();
-//                    runOnUiThread(() -> textStatus.setText(response_str));
-//                    runOnUiThread(() -> textStatus.setTextColor(Color.GREEN));
+
                     runOnUiThread(() -> processAnalysisResponse(responseZipStream));
                 }
                 else {
@@ -221,15 +210,6 @@ public class AnalysisActivity extends AppCompatActivity {
         }
         file.delete(); // Delete the file or empty folder
     }
-
-    private void deleteRecursive(File fileOrDirectory) {
-        if (fileOrDirectory.isDirectory())
-            for (File child : fileOrDirectory.listFiles())
-                deleteRecursive(child);
-
-        fileOrDirectory.delete();
-    }
-
 
     private void saveAndExtractZip(InputStream zipInputStream, File outputDir) {
         try {
@@ -291,7 +271,6 @@ public class AnalysisActivity extends AppCompatActivity {
         }
     }
 
-
     private void updateResultsGUI(){//File foodDataFile, File mainImgFile) {
         runOnUiThread(() -> {
             //Update the main display image
@@ -312,21 +291,21 @@ public class AnalysisActivity extends AppCompatActivity {
                 tvMarkerStatus.setTextColor(Color.BLACK);
             }
             else {
-                tvMarkerStatus.setText("Warning: marker not found. Data will not be accurate.");
+                tvMarkerStatus.setText(R.string.warning_marker_not_found);
                 tvMarkerStatus.setTextColor(Color.RED);
             }
             txtCarbBreakdown.setText("Total Carbs: " + df.format(totals.get(0)) + "g" +"\nTotal Volume: " + df.format(totals.get(1)) + "cm³" + "\nTotal Weight: " + df.format(totals.get(2)) + "g");
             //Finally, remove the loading progressbar to show that processing is complete
             progressBar.setVisibility(View.INVISIBLE);
-            textStatus.setText("Successfully processed food data");
+            textStatus.setText(R.string.successfully_processed_food_data);
         });
     }
 
     public void updateResultsSection(List<IndividualFoodItem> foodList) {
         //Recalculate totals after items removed
-        float totalCarbs = 0;
-        float totalVolume = 0;
-        float totalWeight = 0;
+        double totalCarbs = 0;
+        double totalVolume = 0;
+        double totalWeight = 0;
 
         for (IndividualFoodItem foodItem : foodList) {
             totalCarbs += foodItem.getGramsCarbs();
@@ -334,14 +313,11 @@ public class AnalysisActivity extends AppCompatActivity {
             totalWeight += foodItem.getEstimatedWeight();
         }
         updateTxtBreakdown("Total Carbs: " + df.format(totalCarbs) + "g" +"\nTotal Volume: " + df.format(totalVolume) + "cm³" + "\nTotal Weight: " + df.format(totalWeight) + "g");
-//        txtCarbBreakdown.setText();
-
     }
 
     private void updateTxtBreakdown(String text) {
         txtCarbBreakdown.setText(text);
     }
-
 
     private boolean getMarkerStatusFromFile() {
         try {
@@ -466,38 +442,38 @@ public class AnalysisActivity extends AppCompatActivity {
         rvFoodList.setAdapter(foodAdapter);
     }
 
-    private void processTextFile(File textFile) {
-        try {
-            BufferedReader br = new BufferedReader(new FileReader(textFile));
-            StringBuilder text = new StringBuilder();
-            String line;
-            while ((line = br.readLine()) != null) {
-                text.append(line).append("\n");
-            }
-            br.close();
-
-            // Display extracted food data
-            String extractedText = text.toString();
-            Log.d("Food Data", extractedText);
-            runOnUiThread(() -> textStatus.setText(extractedText));
-
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    private Bitmap rotateBitmap(Bitmap original, float degrees) {
-        int width = original.getWidth();
-        int height = original.getHeight();
-
-        Matrix matrix = new Matrix();
-        matrix.preRotate(degrees);
-
-        Bitmap rotatedBitmap = Bitmap.createBitmap(original, 0, 0, width, height, matrix, true);
-        Canvas canvas = new Canvas(rotatedBitmap);
-        canvas.drawBitmap(original, 5.0f, 0.0f, null);
-
-        return rotatedBitmap;
-    }
+//    private void processTextFile(File textFile) {
+//        try {
+//            BufferedReader br = new BufferedReader(new FileReader(textFile));
+//            StringBuilder text = new StringBuilder();
+//            String line;
+//            while ((line = br.readLine()) != null) {
+//                text.append(line).append("\n");
+//            }
+//            br.close();
+//
+//            // Display extracted food data
+//            String extractedText = text.toString();
+//            Log.d("Food Data", extractedText);
+//            runOnUiThread(() -> textStatus.setText(extractedText));
+//
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
+//    }
+//
+//    private Bitmap rotateBitmap(Bitmap original, float degrees) {
+//        int width = original.getWidth();
+//        int height = original.getHeight();
+//
+//        Matrix matrix = new Matrix();
+//        matrix.preRotate(degrees);
+//
+//        Bitmap rotatedBitmap = Bitmap.createBitmap(original, 0, 0, width, height, matrix, true);
+//        Canvas canvas = new Canvas(rotatedBitmap);
+//        canvas.drawBitmap(original, 5.0f, 0.0f, null);
+//
+//        return rotatedBitmap;
+//    }
 }
 

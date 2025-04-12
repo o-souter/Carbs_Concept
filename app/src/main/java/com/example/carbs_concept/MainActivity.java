@@ -1,13 +1,18 @@
 package com.example.carbs_concept;
 
+import static android.view.View.INVISIBLE;
 import static org.opencv.imgproc.Imgproc.COLOR_BGR2RGB;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 
+import android.graphics.Color;
+import android.os.Build;
 import android.os.Bundle;
 
 import android.util.Log;
+import android.view.View;
+import android.view.WindowInsetsController;
 import android.widget.Button;
 
 import java.io.File;
@@ -26,6 +31,8 @@ import androidx.camera.core.ImageCaptureException;
 import androidx.camera.core.ImageProxy;
 import androidx.camera.core.Preview;
 
+import androidx.camera.core.processing.SurfaceProcessorNode;
+import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.graphics.Insets;
@@ -42,10 +49,7 @@ import org.opencv.android.Utils;
 import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
-import org.opencv.core.MatOfPoint;
-import org.opencv.core.MatOfPoint2f;
 import org.opencv.core.Point;
-import org.opencv.core.Scalar;
 import org.opencv.core.Size;
 import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
@@ -54,21 +58,10 @@ import org.opencv.objdetect.Dictionary;
 import org.opencv.objdetect.Objdetect;
 import org.opencv.objdetect.DetectorParameters;
 
-//import com.example.carbs_concept.
 import android.Manifest;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
-
-import com.google.ar.core.Config;
-import com.google.ar.core.Frame;
-import com.google.ar.core.PointCloud;
-import com.google.ar.core.Session;
-import com.google.ar.core.exceptions.CameraNotAvailableException;
-import com.google.ar.core.exceptions.MissingGlContextException;
-import com.google.ar.core.exceptions.UnavailableException;
-import org.opencv.core.Core;
-import android.util.Log;
 
 public class MainActivity extends AppCompatActivity {
     private static final int CAMERA_PERMISSION_CODE = 100;
@@ -85,6 +78,12 @@ public class MainActivity extends AppCompatActivity {
     private String correctBackendAddress;
 //    private String correctServerPort;
     private Boolean backendFound;
+
+    private TextView txtAlertInfo;
+    private Button btnAlertOk;
+    private Boolean alertRead = false;
+    private ConstraintLayout alert;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -96,6 +95,7 @@ public class MainActivity extends AppCompatActivity {
 
         Intent intent = getIntent();
         String correctIP = intent.getStringExtra("correctBackendAddress");
+        alertRead = intent.getBooleanExtra("alertRead", false);
 //        String correctPort = intent.getStringExtra("correctPort");
         if (correctIP != null) { //If a correct IP has been tested and given by ServerConfigurationActivity, Use this to pass test checks. Otherwise keep as default
             testBackendAddress = correctIP;
@@ -107,12 +107,29 @@ public class MainActivity extends AppCompatActivity {
         helpButton.setOnClickListener(v -> {
             Intent showHelp = new Intent(this, HelpActivity.class);
             showHelp.putExtra("correctAddress", correctBackendAddress);
+            showHelp.putExtra("alertRead", alertRead);
 //            showHelp.putExtra("correctPort", correctServerPort);
             startActivity(showHelp);
         });
         helpButton.setEnabled(false);
 
         backendFound = false;
+        txtAlertInfo = findViewById(R.id.txtAlertInfo);
+        btnAlertOk = findViewById(R.id.btnOk);
+        alert = findViewById(R.id.alertInfo);
+        if (alertRead) {
+            alert.setVisibility(INVISIBLE);
+        }
+        else {
+            txtAlertInfo.setText("To start, position your camera above your food and press capture.");
+        }
+
+        btnAlertOk.setOnClickListener(v -> {
+            alert.setVisibility(INVISIBLE);
+            alertRead = true;
+        });
+
+
         testFlaskConnection(testBackendAddress); //Test connection with backend and handle accordingly
 
         //Confirm OpenCV initialised properly
@@ -126,7 +143,7 @@ public class MainActivity extends AppCompatActivity {
         //Set up versioning
         String versionName = BuildConfig.APP_VERSION_NAME;
         TextView versionText = findViewById(R.id.versionText);
-        versionText.setText("C.A.R.B.S CaptureTool v" + versionName);// + " (" + versionCode + ")");
+        versionText.setText(String.format("%s%s", getString(R.string.c_a_r_b_s_capturetool_v), versionName));// + " (" + versionCode + ")");
         //Request permissions
         getPermissions();
         //Setup widgets
@@ -142,6 +159,20 @@ public class MainActivity extends AppCompatActivity {
         initializeCamera();
         detectionFeedback = findViewById((R.id.detectionFeedback));
 
+        //Make the status bar transparent
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            getWindow().setDecorFitsSystemWindows(false);
+            getWindow().getInsetsController().setSystemBarsBehavior(
+                    WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            );
+        } else {
+            getWindow().getDecorView().setSystemUiVisibility(
+                    View.SYSTEM_UI_FLAG_LAYOUT_STABLE | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+            );
+        }
+        getWindow().setStatusBarColor(Color.TRANSPARENT);
+
+
         //Set up the GUI
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
@@ -156,8 +187,8 @@ public class MainActivity extends AppCompatActivity {
             if (result.contains("Error") | result.contains("Failed") | result.contains("Timed out")) {//If cannot connect using default value
                 backendFound = false;
                 Intent intent = new Intent(this, ServerConfigurationActivity.class);
+                intent.putExtra("alertRead", alertRead);
                 startActivity(intent);
-
 
             }
             else {
@@ -238,53 +269,50 @@ public class MainActivity extends AppCompatActivity {
             liveImageView.setImageBitmap(rgbBitmap);
 
             if (!markerIds.empty()) {
-                List<List<Point>> cornersList = new ArrayList<>();
-                for (int i = 0; i < markerCorners.size(); i++) {
-                    // Get the marker corners
-
-                    Mat cornerMat = markerCorners.get(i);
-
-                    MatOfPoint2f cornerMatOfPoint2f = new MatOfPoint2f();
-
-                    cornerMat.convertTo(cornerMatOfPoint2f, CvType.CV_32F);
-
-                    List<Point> points = new ArrayList<>();
-                    for (int j = 0; j < cornerMatOfPoint2f.rows(); j++) {
-                        double[] corner = cornerMatOfPoint2f.get(j, 0);
-                        points.add(new Point(corner[0], corner[1]));
-                    }
-                    cornersList.add(points);
-                }
+//                List<List<Point>> cornersList = new ArrayList<>();
+//                for (int i = 0; i < markerCorners.size(); i++) {
+//                    // Get the marker corners
+//
+//                    Mat cornerMat = markerCorners.get(i);
+//
+//                    MatOfPoint2f cornerMatOfPoint2f = new MatOfPoint2f();
+//
+//                    cornerMat.convertTo(cornerMatOfPoint2f, CvType.CV_32F);
+//
+//                    List<Point> points = new ArrayList<>();
+//                    for (int j = 0; j < cornerMatOfPoint2f.rows(); j++) {
+//                        double[] corner = cornerMatOfPoint2f.get(j, 0);
+//                        points.add(new Point(corner[0], corner[1]));
+//                    }
+//                    cornersList.add(points);
+//                }
 
                 runOnUiThread(() -> {
-                    detectionFeedback.setText(markerIds.rows() + " Fiducial marker(s) detected.");
+                    detectionFeedback.setText(R.string.fiducial_marker_s_detected);
                     detectionFeedback.setTextColor(getResources().getColor(android.R.color.holo_green_dark));
 
                     if (backendFound) {
                         captureButton.setEnabled(true);
-                        captureButton.setText("Capture");
+                        captureButton.setText(R.string.capture);
                     }
                     else {
                         captureButton.setEnabled(false);
-                        captureButton.setText("Connecting...");
+                        captureButton.setText(R.string.connecting);
                     }
-
-
-
                 });
             }
             else {
                 runOnUiThread(() -> {
-                    detectionFeedback.setText("No fiducial marker detected.");
+                    detectionFeedback.setText(R.string.no_fiducial_marker_detected);
                     detectionFeedback.setTextColor(getResources().getColor(android.R.color.holo_red_light));
 //                    captureButton.setEnabled(false);
                     if (backendFound) {
                         captureButton.setEnabled(true);
-                        captureButton.setText("Capture");
+                        captureButton.setText(R.string.capture);
                     }
                     else {
                         captureButton.setEnabled(false);
-                        captureButton.setText("Awaiting connection to backend...");
+                        captureButton.setText(R.string.connecting);
                     }
 
                 });
@@ -375,10 +403,10 @@ public class MainActivity extends AppCompatActivity {
 
 
     private void processImage(String imagePath){//, String pointCloudPath) {
-        Intent intent = new Intent(this, PointCloudCaptureActivity.class);
+        Intent intent = new Intent(this, AnalysisActivity.class);
         intent.putExtra("imagePath", imagePath);
-
-        double[] matrixData = new double[9];
+        intent.putExtra("alertRead", alertRead);
+//        double[] matrixData = new double[9];
 //        intrinsicMatrix.get(0, 0, matrixData);
 //        intent.putExtra("intrinsicMatrix", matrixData);
 

@@ -63,6 +63,7 @@ public class HelpActivity extends AppCompatActivity {
         btnBackToCapture.setOnClickListener(v -> {
             Intent goBack = new Intent(this, MainActivity.class);
             goBack.putExtra("correctBackendAddress", backendAddress);
+            goBack.putExtra("alertRead", true);
             startActivity(goBack);
         });
 
