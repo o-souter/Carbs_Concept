@@ -1,5 +1,7 @@
 package com.example.carbs_concept;
 
+import static android.view.View.INVISIBLE;
+
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -33,6 +35,8 @@ import java.io.InputStream;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -75,7 +79,8 @@ public class AnalysisActivity extends AppCompatActivity {
     private int responseTimeOut = 600;
     private boolean alertRead;
     private static final DecimalFormat df = new DecimalFormat("0.00");
-
+    private double startTime = 0.0;
+    private double endTime = 0.0;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -115,6 +120,7 @@ public class AnalysisActivity extends AppCompatActivity {
     }
 
     private void uploadData(String imagePath) {
+        startTime = System.nanoTime();
         progressBar.setVisibility(View.VISIBLE);
         progressBar.bringToFront();
 //        OkHttpClient client = new OkHttpClient();
@@ -156,6 +162,7 @@ public class AnalysisActivity extends AppCompatActivity {
                 e.printStackTrace();
                 Log.e("OkHTTP Image Upload", "Failed: " + e.getMessage());
                 runOnUiThread(() -> textStatus.setText("Request Failed: " + e.getMessage()));
+                runOnUiThread(() -> progressBar.setVisibility(INVISIBLE));
             }
             @Override
             public void onResponse(@NonNull Call call, @NonNull Response response) {
@@ -169,6 +176,7 @@ public class AnalysisActivity extends AppCompatActivity {
                 else {
                     Log.e("OkHTTP Image Upload", "Error: "+response.code());
                     runOnUiThread(() -> textStatus.setText("Request Error: "+response.code()));
+                    runOnUiThread(() -> progressBar.setVisibility(INVISIBLE));
                 }
             }
         });
@@ -296,8 +304,10 @@ public class AnalysisActivity extends AppCompatActivity {
             }
             txtCarbBreakdown.setText("Total Carbs: " + df.format(totals.get(0)) + "g" +"\nTotal Volume: " + df.format(totals.get(1)) + "cm³" + "\nTotal Weight: " + df.format(totals.get(2)) + "g");
             //Finally, remove the loading progressbar to show that processing is complete
-            progressBar.setVisibility(View.INVISIBLE);
-            textStatus.setText(R.string.successfully_processed_food_data);
+            progressBar.setVisibility(INVISIBLE);
+            endTime = System.nanoTime();
+            double duration = Math.round(((endTime - startTime)/1000000000.0) * 10) / 10.0;
+            textStatus.setText("Successfully processed food data. (" + duration+"s)");
         });
     }
 

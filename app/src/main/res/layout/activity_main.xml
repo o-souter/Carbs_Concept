@@ -112,6 +112,7 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
 
+
     <TextView
         android:id="@+id/detectionFeedback"
         android:layout_width="wrap_content"
@@ -120,13 +121,15 @@
         android:background="#88000000"
         android:ellipsize="middle"
         android:gravity="center"
-        android:text="Scanning for marker..."
+        android:maxWidth="270dp"
+        android:text="Searching for fiducial marker..."
+        android:textAlignment="center"
         android:textColor="@android:color/holo_red_dark"
         android:textSize="18sp"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.497"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
-
 
     <TextView
         android:id="@+id/versionText"

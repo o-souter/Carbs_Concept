@@ -7,7 +7,7 @@
     <string name="c_a_r_b_s_capturetool_v">C.A.R.B.S CaptureTool v</string>
     <string name="connecting">Connecting...</string>
     <string name="capture">Capture</string>
-    <string name="no_fiducial_marker_detected">No fiducial marker detected.</string>
+    <string name="no_fiducial_marker_detected">No marker found. You can print one from the ℹ️ menu (top left)</string>
     <string name="fiducial_marker_s_detected">Fiducial marker(s) detected.</string>
     <string name="error_unable_to_upload_file">Error: Unable to upload file.</string>
     <string name="test_connection_dialog">Manual Connection</string>
