@@ -1,6 +1,5 @@
+// IndividualFoodItem.java - Class type for an individual food item
 package com.example.carbs_concept;
-
-import java.text.DecimalFormat;
 
 public class IndividualFoodItem {
     private String imagePath;
@@ -29,6 +28,7 @@ public class IndividualFoodItem {
     }
 
     public String getDescription() {
+        //Returns the food item's name in frontend format for display
         String beautifiedDescription = description;
         beautifiedDescription = beautifiedDescription.replace("-", " ");
         beautifiedDescription = beautifiedDescription.substring(0, 1).toUpperCase() + beautifiedDescription.substring(1);

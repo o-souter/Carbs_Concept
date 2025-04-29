@@ -1,3 +1,4 @@
+//HelpActivity - Handles the Help/Extras page, allowing for printing of markers and listing of food classes
 package com.example.carbs_concept;
 
 import android.content.Context;
@@ -5,6 +6,7 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
+import android.util.Log;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ListView;
@@ -40,7 +42,6 @@ public class HelpActivity extends AppCompatActivity {
     private Button btnBackToCapture;
     private Button btnPrintMarkers;
     private String backendAddress;
-    private String portForBackend;
     private String url;
     private ListView lvFoodClasses;
     private TextView tvFlaskBackend;
@@ -51,8 +52,8 @@ public class HelpActivity extends AppCompatActivity {
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_help);
         Intent intent = getIntent();
+        //Get the current backend address
         backendAddress = intent.getStringExtra("correctAddress");
-//        portForBackend = intent.getStringExtra("correctPort");
         url = "http://" + backendAddress;
         btnBackToCapture = findViewById(R.id.btnBackToCapture);
         btnPrintMarkers = findViewById(R.id.btnPrintMarkers);
@@ -66,12 +67,12 @@ public class HelpActivity extends AppCompatActivity {
             goBack.putExtra("alertRead", true);
             startActivity(goBack);
         });
-
+        //Set up marker printing
         btnPrintMarkers.setOnClickListener(v -> {
             printMarkers(this);
         });
 
-
+        //Get list of all food classes
         requestFoodClasses();
 
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
@@ -82,6 +83,8 @@ public class HelpActivity extends AppCompatActivity {
     }
 
     private void printMarkers(Context context) {
+        //Open the marker PDF file
+
         File pdfFile = copyPdfToCache(context, "MarkerDoc.pdf");
         if (pdfFile == null) {
             return;
@@ -101,6 +104,7 @@ public class HelpActivity extends AppCompatActivity {
     }
 
     private static File copyPdfToCache(Context context, String fileName) {
+        //Copy the marker PDF to cache to be opened
         try {
             File outputFile = new File(context.getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS), fileName);
             try (InputStream inputStream = context.getAssets().open(fileName);
@@ -119,6 +123,7 @@ public class HelpActivity extends AppCompatActivity {
     }
 
     private void requestFoodClasses() {
+        //Call backend and request food classes
         OkHttpClient client = new OkHttpClient();
         HttpUrl requestUrl = HttpUrl.parse(url + "/get-food-classes");
         Request request = new Request.Builder()
@@ -128,9 +133,7 @@ public class HelpActivity extends AppCompatActivity {
         client.newCall(request).enqueue(new Callback() {
             @Override
             public void onFailure(@NonNull Call call, @NonNull IOException e) {
-//                runOnUiThread(() -> {
-//                    lvFoodClasses.add
-//                });
+                Log.e("requestFoodClasses", "Unable to request food classes");
             }
 
             @Override
@@ -140,7 +143,7 @@ public class HelpActivity extends AppCompatActivity {
                 // Read responseBody in background thread
                 ResponseBody responseBody = response.body();
                 if (responseBody != null) {
-                    String responseString = responseBody.string(); // NOW it's on background thread
+                    String responseString = responseBody.string();
 
                     // Process words
                     List<String> foodList = beautifyList(Arrays.asList(responseString.split("\\s+")));
@@ -155,6 +158,7 @@ public class HelpActivity extends AppCompatActivity {
     }
 
     private List<String> beautifyList(List<String> wordList) {
+        //Convert list from backend format into more appealing front end format
         ArrayList newList = new ArrayList<String>();
         for (int i = 0; i < wordList.size(); i++) {
             String word = wordList.get(i);
@@ -167,7 +171,7 @@ public class HelpActivity extends AppCompatActivity {
     }
 
     private void updateFoodClassList(List<String> foodList) {
-        // Update UI on the main thread
+        // Update UI on the main thread to show food classes
         runOnUiThread(() -> {
             Collections.sort(foodList);
             ArrayAdapter<String> adapter = new ArrayAdapter<>(

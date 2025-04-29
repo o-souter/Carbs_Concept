@@ -1,3 +1,4 @@
+// MainActivity.java - Handles image capture and direction to other views
 package com.example.carbs_concept;
 
 import static android.view.View.INVISIBLE;
@@ -74,11 +75,8 @@ public class MainActivity extends AppCompatActivity {
     private ImageView liveImageView;
     private ProcessCameraProvider cameraProvider;
     private String defaultBackendAddress = "192.168.1.168:8000";
-//    private String defaultServerPort = "5000";
     private String correctBackendAddress;
-//    private String correctServerPort;
     private Boolean backendFound;
-
     private TextView txtAlertInfo;
     private Button btnAlertOk;
     private Boolean alertRead = false;
@@ -89,26 +87,21 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_main);
-
         String testBackendAddress = defaultBackendAddress;
-//        String testPort = defaultServerPort;
-
         Intent intent = getIntent();
+        //Retrieve server IP if it has been given already
         String correctIP = intent.getStringExtra("correctBackendAddress");
         alertRead = intent.getBooleanExtra("alertRead", false);
-//        String correctPort = intent.getStringExtra("correctPort");
         if (correctIP != null) { //If a correct IP has been tested and given by ServerConfigurationActivity, Use this to pass test checks. Otherwise keep as default
             testBackendAddress = correctIP;
-//            testPort = correctPort;
             Log.d("Connection to Flask Backend", "Correct Backend address provided: " + testBackendAddress + ":");
         }
-
+        //Open help activity if button pressed
         helpButton = findViewById(R.id.btnHelp);
         helpButton.setOnClickListener(v -> {
             Intent showHelp = new Intent(this, HelpActivity.class);
             showHelp.putExtra("correctAddress", correctBackendAddress);
             showHelp.putExtra("alertRead", alertRead);
-//            showHelp.putExtra("correctPort", correctServerPort);
             startActivity(showHelp);
         });
         helpButton.setEnabled(false);
@@ -117,22 +110,22 @@ public class MainActivity extends AppCompatActivity {
         txtAlertInfo = findViewById(R.id.txtAlertInfo);
         btnAlertOk = findViewById(R.id.btnOk);
         alert = findViewById(R.id.alertInfo);
-        if (alertRead) {
+        if (alertRead) { //Determine if alert has been read
             alert.setVisibility(INVISIBLE);
         }
         else {
-            txtAlertInfo.setText("To start, position your camera above your food and press capture.");
+            txtAlertInfo.setText(R.string.to_start_position_your_camera_above_your_food_and_press_capture);
         }
 
         btnAlertOk.setOnClickListener(v -> {
             alert.setVisibility(INVISIBLE);
-            alertRead = true;
+            alertRead = true; //Set up button to hide alert when clicked
         });
 
 
         testFlaskConnection(testBackendAddress); //Test connection with backend and handle accordingly
 
-        //Confirm OpenCV initialised properly
+        //Confirm OpenCV is initialised properly
         if (!OpenCVLoader.initDebug()) {
             Log.e("OpenCV", "OpenCV initialization failed!");
         } else {
@@ -146,6 +139,7 @@ public class MainActivity extends AppCompatActivity {
         versionText.setText(String.format("%s%s", getString(R.string.c_a_r_b_s_capturetool_v), versionName));// + " (" + versionCode + ")");
         //Request permissions
         getPermissions();
+
         //Setup widgets
         captureButton = findViewById(R.id.captureButton);
         captureButton.setOnClickListener(v -> {
@@ -153,7 +147,6 @@ public class MainActivity extends AppCompatActivity {
                 captureImage();
             }
         });
-
         liveImageView = findViewById(R.id.liveImageView);
         initializeArucoDetector();
         initializeCamera();
@@ -171,9 +164,6 @@ public class MainActivity extends AppCompatActivity {
             );
         }
         getWindow().setStatusBarColor(Color.TRANSPARENT);
-
-
-        //Set up the GUI
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
@@ -182,6 +172,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void testFlaskConnection(String address) {
+        //Test the connection to a backend address
         ServerConfigurationActivity.probeServerAndWaitForResponse(address, result -> {
             Log.d("Flask backend test", result);
             if (result.contains("Error") | result.contains("Failed") | result.contains("Timed out")) {//If cannot connect using default value
@@ -202,7 +193,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void getPermissions() {
-        //Camera permissions
+        //Get camera permissions
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA},
                     CAMERA_PERMISSION_CODE);
@@ -210,12 +201,14 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void initializeArucoDetector() {
+        //Set up local ArUco detection
         Dictionary dictionary = Objdetect.getPredefinedDictionary(Objdetect.DICT_4X4_50);
         DetectorParameters params = new DetectorParameters();
         arucoDetector = new ArucoDetector(dictionary, params);
     }
 
     private void initializeCamera() {
+        //Set up the camera
         try {
             cameraProvider = ProcessCameraProvider.getInstance(this).get();
             CameraSelector cameraSelector = new CameraSelector.Builder().requireLensFacing(CameraSelector.LENS_FACING_BACK).build();
@@ -232,6 +225,7 @@ public class MainActivity extends AppCompatActivity {
 
 
     private void analyseFrame(ImageProxy imageProxy) {
+        //Analyse a frame for ArUco Markers
         try {
             Mat frame = rotateMat(imageProxyToMat(imageProxy), 270);
 
@@ -264,33 +258,13 @@ public class MainActivity extends AppCompatActivity {
             Utils.matToBitmap(frame, bitmap);
             Bitmap rgbBitmap = Bitmap.createBitmap(frame.cols(), frame.rows(), Bitmap.Config.ARGB_8888);
             Utils.matToBitmap(rgbFrame, rgbBitmap);
-
-//            Mat rotatedFrame = rotateMat(frame, 270);
             liveImageView.setImageBitmap(rgbBitmap);
 
-            if (!markerIds.empty()) {
-//                List<List<Point>> cornersList = new ArrayList<>();
-//                for (int i = 0; i < markerCorners.size(); i++) {
-//                    // Get the marker corners
-//
-//                    Mat cornerMat = markerCorners.get(i);
-//
-//                    MatOfPoint2f cornerMatOfPoint2f = new MatOfPoint2f();
-//
-//                    cornerMat.convertTo(cornerMatOfPoint2f, CvType.CV_32F);
-//
-//                    List<Point> points = new ArrayList<>();
-//                    for (int j = 0; j < cornerMatOfPoint2f.rows(); j++) {
-//                        double[] corner = cornerMatOfPoint2f.get(j, 0);
-//                        points.add(new Point(corner[0], corner[1]));
-//                    }
-//                    cornersList.add(points);
-//                }
-
+            if (!markerIds.empty()) { //If markers detected, inform user
                 runOnUiThread(() -> {
                     detectionFeedback.setText(R.string.fiducial_marker_s_detected);
                     detectionFeedback.setTextColor(getResources().getColor(android.R.color.holo_green_dark));
-
+                    //Update button to only allow capture if backend is connected successfully
                     if (backendFound) {
                         captureButton.setEnabled(true);
                         captureButton.setText(R.string.capture);
@@ -301,11 +275,11 @@ public class MainActivity extends AppCompatActivity {
                     }
                 });
             }
-            else {
+            else { //If markers not detected, alert user
                 runOnUiThread(() -> {
                     detectionFeedback.setText(R.string.no_fiducial_marker_detected);
                     detectionFeedback.setTextColor(getResources().getColor(android.R.color.holo_red_light));
-//                    captureButton.setEnabled(false);
+                    //Update button to only allow capture if backend is connected successfully
                     if (backendFound) {
                         captureButton.setEnabled(true);
                         captureButton.setText(R.string.capture);
@@ -328,6 +302,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private Mat rotateMat(Mat mat, int rotationAngle) {
+        //Rotate a Mat object
         // Get the center of the image
         Point center = new Point(mat.width() / 2, mat.height() / 2);
 
@@ -378,9 +353,9 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void captureImage() {
+        //Capture an image using the camera and store it for upload
         File file = new File(getFilesDir(), "captured_image.jpg");
         ImageCapture.OutputFileOptions options = new ImageCapture.OutputFileOptions.Builder(file).build();
-
         imageCapture.takePicture(
                 options,
                 ContextCompat.getMainExecutor(this),
@@ -388,11 +363,9 @@ public class MainActivity extends AppCompatActivity {
                     @Override
                     public void onImageSaved(@NonNull ImageCapture.OutputFileResults outputFileResults) {
                         Log.d("CameraX", "Image saved: " + file.getAbsolutePath());
-//                        Mat intrinsicMatrix = getIntrinsicMatrix();
+                        //Start the upload to processing server
                         processImage(file.getAbsolutePath());
-
                     }
-
                     @Override
                     public void onError(@NonNull ImageCaptureException exception) {
                         Log.e("CameraX", "Image capture failed: " + exception.getMessage());
@@ -403,16 +376,11 @@ public class MainActivity extends AppCompatActivity {
 
 
     private void processImage(String imagePath){//, String pointCloudPath) {
+        //Open the AnalysisActivity page, passing through the image captured so it can later be uploaded
         Intent intent = new Intent(this, AnalysisActivity.class);
         intent.putExtra("imagePath", imagePath);
         intent.putExtra("alertRead", alertRead);
-//        double[] matrixData = new double[9];
-//        intrinsicMatrix.get(0, 0, matrixData);
-//        intent.putExtra("intrinsicMatrix", matrixData);
-
-
         intent.putExtra("correctServerAddress", correctBackendAddress);
-//        intent.putExtra("correctPort", correctServerPort);
         startActivity(intent);
     }
 

@@ -11,6 +11,7 @@
     <string name="fiducial_marker_s_detected">Fiducial marker(s) detected.</string>
     <string name="error_unable_to_upload_file">Error: Unable to upload file.</string>
     <string name="test_connection_dialog">Manual Connection</string>
+    <string name="to_start_position_your_camera_above_your_food_and_press_capture">To start, position your camera above your food and press capture.</string>
     <color name="beige">#ffd695</color>
     <color name="darkerbeige">#caaa76</color>
     <color name="picklegreen">#065509</color>

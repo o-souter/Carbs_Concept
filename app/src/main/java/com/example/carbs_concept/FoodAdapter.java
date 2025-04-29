@@ -1,3 +1,4 @@
+// FoodAdapter.java - handles the food list recyclerview to display food items detected and their information
 package com.example.carbs_concept;
 
 import android.graphics.Bitmap;
@@ -34,7 +35,6 @@ public class FoodAdapter extends RecyclerView.Adapter<FoodAdapter.FoodViewHolder
         TextView weightView;
         TextView volumeView;
         ImageButton deleteBtn;
-        String uniqueId;
 
 
         public FoodViewHolder(View itemView){
@@ -46,7 +46,6 @@ public class FoodAdapter extends RecyclerView.Adapter<FoodAdapter.FoodViewHolder
             weightView = itemView.findViewById(R.id.weightTextView);
             volumeView = itemView.findViewById(R.id.volumeTextView);
             deleteBtn = itemView.findViewById(R.id.btnRemoveItem);
-            String uniqueId = "";
         }
     }
 
@@ -67,20 +66,17 @@ public class FoodAdapter extends RecyclerView.Adapter<FoodAdapter.FoodViewHolder
             Bitmap imgBitmap = BitmapFactory.decodeFile(foodItem.getImagePath());
             holder.imageView.setImageBitmap(imgBitmap);
         }
-
+        //Set the views to reflect food results
         holder.textView.setText(foodItem.getDescription());
         holder.carbsView.setText("Carbohydrates: " + df.format(foodItem.getGramsCarbs()) + "g");
         holder.confidenceView.setText("Confidence: " + foodItem.getDetectionConfidence() + "%");
         holder.weightView.setText("Estimated weight: " + df.format(foodItem.getEstimatedWeight()) + "g");
         holder.volumeView.setText("Estimated volume: " + df.format(foodItem.getEstimatedVolume()) + "cm³");
-//        holder.uniqueId = foodItem.getDescription() + "_" + foodItem.getEstimatedVolume();
-        holder.deleteBtn.setOnClickListener(v -> {
+        holder.deleteBtn.setOnClickListener(v -> { //Set a listener to delete the food item if the user presses the x
             removeItem(foodItem.getUniqueId());
-//            notifyDataSetChanged();
-//            notifyItemRemoved(position);
         });
 
-        if (!foodItem.isCloseable()) {
+        if (!foodItem.isCloseable()) { //If not a closable item (e.g. alert) then hide the x
             holder.deleteBtn.setVisibility(View.INVISIBLE);
         }
     }
@@ -95,8 +91,8 @@ public class FoodAdapter extends RecyclerView.Adapter<FoodAdapter.FoodViewHolder
     }
 
     public void removeItem(String idOfItemToDelete) {
-        // Find the position of the item to delete
-        int positionToRemove = -1;
+        //Delete an item from the recycler view
+        int positionToRemove = -1; // Find the position of the item to delete
         for (int i = 0; i < foodList.size(); i++) {
             if (Objects.equals(foodList.get(i).getUniqueId(), idOfItemToDelete)) {
                 positionToRemove = i;

@@ -1,3 +1,4 @@
+//PointCloudCaptureActivity.java - Was used to handle pointcloud capture using ARCore, however no longer used as proved to not be effective. Left in for future development
 package com.example.carbs_concept;
 
 import android.content.Intent;

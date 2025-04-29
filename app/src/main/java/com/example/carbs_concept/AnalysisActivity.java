@@ -1,3 +1,4 @@
+//AnalysisActivity.java - Handles the image upload and display of analysis results from the CARBS Processing Backend
 package com.example.carbs_concept;
 
 import static android.view.View.INVISIBLE;
@@ -5,9 +6,7 @@ import static android.view.View.INVISIBLE;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.graphics.Canvas;
 import android.graphics.Color;
-import android.graphics.Matrix;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -35,8 +34,6 @@ import java.io.InputStream;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Calendar;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -57,13 +54,11 @@ import okhttp3.Response;
 
 public class AnalysisActivity extends AppCompatActivity {
     private String imagePath;
-//    private String pointCloudPath;
     private ImageView segmentedImgView;
     private ProgressBar progressBar;
     private TextView textStatus;
     private ImageButton btnBackToCamera;
     private String backendUrl;
-//    private String portForBackend;
     private TextView txtCarbBreakdown;
     private RecyclerView rvFoodList;
     private FoodAdapter foodAdapter;
@@ -87,11 +82,10 @@ public class AnalysisActivity extends AppCompatActivity {
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_analysis);
         Intent intent = getIntent();
+        //Set up view, get extras from previous page
         imagePath = intent.getStringExtra("imagePath");
-//        pointCloudPath = intent.getStringExtra("pointCloudPath");
         backendUrl = intent.getStringExtra("correctServerAddress");
         alertRead = intent.getBooleanExtra("alertRead", false);
-
         segmentedImgView = findViewById(R.id.segmentedImgView);
         progressBar = findViewById(R.id.progressBar);
         textStatus = findViewById(R.id.textStatus);
@@ -106,31 +100,30 @@ public class AnalysisActivity extends AppCompatActivity {
             backToCamera.putExtra("alertRead", true);
             startActivity(backToCamera);
         });
-
-
-
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
         });
         textStatus.setText(R.string.configuring_connection_with_flask_backend);
+
+        //Upload the data to the backend
         uploadData(imagePath);
 
     }
 
     private void uploadData(String imagePath) {
+        //Upload the data to the backend
         startTime = System.nanoTime();
         progressBar.setVisibility(View.VISIBLE);
         progressBar.bringToFront();
-//        OkHttpClient client = new OkHttpClient();
+        //Establish OkHttp Client
         OkHttpClient client = new OkHttpClient.Builder()
                 .connectTimeout(10, TimeUnit.SECONDS)
                 .writeTimeout(10, TimeUnit.SECONDS)
                 .readTimeout(responseTimeOut, TimeUnit.SECONDS)
                 .build();
         File imageFile = new File(imagePath);
-//        File pointCloudFile = new File(pointCloudPath);
         if (!imageFile.exists()){
             Log.e("OkHTTP Image Upload", "Files for upload not found.");
             textStatus.setText(R.string.error_unable_to_upload_file);
@@ -142,8 +135,6 @@ public class AnalysisActivity extends AppCompatActivity {
                 .setType(MultipartBody.FORM)
                 .addFormDataPart("image", imageFile.getName(),
                         RequestBody.create(imageFile, MediaType.parse("image/jpeg")))
-//                .addFormDataPart("pointcloud", pointCloudFile.getName(),
-//                        RequestBody.create(pointCloudFile, MediaType.parse("text/plain")))
                 .build();
 
         //Create request itself
@@ -185,14 +176,11 @@ public class AnalysisActivity extends AppCompatActivity {
 
     private void processAnalysisResponse(InputStream zipInputStream) {
         //Check if a previous response file exists and delete if so
-//        File response_folder = new File(getFilesDir(), "response_data");
-
         File directory = new File(getFilesDir(), "response_data");
         // Check if the directory exists
         if (directory.exists()) {
             deleteDirectory(directory); // Recursively delete contents
         }
-
         // Recreate the directory
         if (directory.mkdirs()) {
             Log.d("processAnalysisResponse", "Directory created: " + directory.getAbsolutePath());
@@ -200,11 +188,9 @@ public class AnalysisActivity extends AppCompatActivity {
             Log.e("processAnalysisResponse", "Failed to create directory: " + directory.getAbsolutePath());
         }
 
-
         ExecutorService executor = Executors.newSingleThreadExecutor();
         executor.execute(() -> saveAndExtractZip(zipInputStream, directory));
         executor.shutdown();
-//        saveAndExtractZip(zipInputStream, response_folder);
     }
 
     private static void deleteDirectory(File file) {
@@ -220,6 +206,7 @@ public class AnalysisActivity extends AppCompatActivity {
     }
 
     private void saveAndExtractZip(InputStream zipInputStream, File outputDir) {
+        //Save and extract the ZIP file from the backend
         try {
             File zipFile = new File(outputDir, "response.zip");
             FileOutputStream fos = new FileOutputStream(zipFile);
@@ -242,6 +229,7 @@ public class AnalysisActivity extends AppCompatActivity {
     }
 
     private void unzip(File zipFile, File outputDir) {
+        //Unzip a zipped file
         try {
             ZipInputStream zis = new ZipInputStream(new FileInputStream(zipFile));
             ZipEntry entry;
@@ -259,19 +247,19 @@ public class AnalysisActivity extends AppCompatActivity {
                 }
                 fos.close();
                 zis.closeEntry();
-
+                //Get foodData file
                 if (entry.getName().equals("foodData.txt")) {
-//                    processTextFile(extractedFile);
                     foodDataFile = extractedFile;
                 }
+                //Get mainImg file
                 else if(entry.getName().equals("mainImg.png")) {
                     mainImgFile = extractedFile;
                 }
             }
             zis.close();
             Log.d("Zip Processing", "Zip extracted Successfully");
-
-            updateResultsGUI();//foodDataFile, mainImgFile);
+            //Update GUI once zip processed
+            updateResultsGUI();
         }
         catch (IOException e) {
             e.printStackTrace();
@@ -279,7 +267,8 @@ public class AnalysisActivity extends AppCompatActivity {
         }
     }
 
-    private void updateResultsGUI(){//File foodDataFile, File mainImgFile) {
+    private void updateResultsGUI(){
+        //Update the UI with food images and data
         runOnUiThread(() -> {
             //Update the main display image
             Bitmap bitmap = BitmapFactory.decodeFile(mainImgFile.getAbsolutePath());
@@ -291,17 +280,17 @@ public class AnalysisActivity extends AppCompatActivity {
             }
 
             //Update recycler view and get carbs total
-            ArrayList<Double> totals = getFoodDataFromFile();//foodDataFile);
+            ArrayList<Double> totals = getFoodDataFromFileAndReturnTotals();
             boolean markerUsed = getMarkerStatusFromFile();
-//            for (FoodItem)
             if (markerUsed) {
                 tvMarkerStatus.setText("");
                 tvMarkerStatus.setTextColor(Color.BLACK);
             }
-            else {
+            else { //If a marker was not found by backend, alert the user
                 tvMarkerStatus.setText(R.string.warning_marker_not_found);
                 tvMarkerStatus.setTextColor(Color.RED);
             }
+            //Update total breakdown
             txtCarbBreakdown.setText("Total Carbs: " + df.format(totals.get(0)) + "g" +"\nTotal Volume: " + df.format(totals.get(1)) + "cm³" + "\nTotal Weight: " + df.format(totals.get(2)) + "g");
             //Finally, remove the loading progressbar to show that processing is complete
             progressBar.setVisibility(INVISIBLE);
@@ -326,10 +315,12 @@ public class AnalysisActivity extends AppCompatActivity {
     }
 
     private void updateTxtBreakdown(String text) {
+        //Manually set the text breakdown
         txtCarbBreakdown.setText(text);
     }
 
     private boolean getMarkerStatusFromFile() {
+        //Read the foodData file and determine if a marker was found or not by backend
         try {
             BufferedReader reader = new BufferedReader(new FileReader(foodDataFile));
             String line = reader.readLine(); //Read the first line
@@ -347,7 +338,8 @@ public class AnalysisActivity extends AppCompatActivity {
         }
     }
 
-    private ArrayList<Double> getFoodDataFromFile(){
+    private ArrayList<Double> getFoodDataFromFileAndReturnTotals(){
+        //Read the foodData file, collect lists of food details, add up totals for breakdown
         Map<String, List<Double>> foodDataMap = new HashMap<>();
         double totalCarbs = 0.0;
         double totalVolume = 0.0;
@@ -358,7 +350,7 @@ public class AnalysisActivity extends AppCompatActivity {
             BufferedReader reader = new BufferedReader(new FileReader(foodDataFile));
             for (int i = 0; i < linesToSkip; i++) {
                 if (reader.readLine() == null) {
-                    Log.e("getFoodItemsFromFile", "File has fewer than " + linesToSkip + " lines.");
+                    Log.e("getFoodDataFromFileAndReturnTotals", "File has fewer than " + linesToSkip + " lines.");
                     return null; // Exit early if the file is too short
                 }
             }
@@ -377,44 +369,47 @@ public class AnalysisActivity extends AppCompatActivity {
                             double estimatedVolume = Double.parseDouble(values[2]);
                             double estimatedWeight = Double.parseDouble(values[3]);
                             List<Double> foodValues = Arrays.asList(
-                                    carbohydrateCount,  // carbohydrateCount
-                                    Double.parseDouble(values[1]),  // detectionConfidence
-                                    estimatedVolume,  // estimatedVolume
-                                    estimatedWeight   // estimatedWeight
+                                    carbohydrateCount,
+                                    Double.parseDouble(values[1]),
+                                    estimatedVolume,
+                                    estimatedWeight
                             );
                             foodDataMap.put(foodName, foodValues);
                             totalCarbs += carbohydrateCount;
                             totalVolume += estimatedVolume;
                             totalWeight += estimatedWeight;
                         } catch (NumberFormatException e) {
-                            Log.e("getFoodDataFromFile", "Error parsing values for " + foodName + ": " + line);
+                            Log.e("getFoodDataFromFileAndReturnTotals", "Error parsing values for " + foodName + ": " + line);
                         }
                     } else {
-                        Log.e("getFoodDataFromFile", "Unexpected number of values for " + foodName + ": " + line);
+                        Log.e("getFoodDataFromFileAndReturnTotals", "Unexpected number of values for " + foodName + ": " + line);
                     }
                 } else {
-                    Log.e("getFoodDataFromFile", "Invalid format: " + line);
+                    Log.e("getFoodDataFromFileAndReturnTotals", "Invalid format: " + line);
                 }
             }
         }
         catch (IOException e) {
-            Log.e("getFoodItemsFromFile", "Unable to read food data file");
+            Log.e("getFoodDataFromFileAndReturnTotals", "Unable to read food data file");
         }
         foodsAndInfo = foodDataMap;
+        //Update the recycler view with all of the foods
         updateRvFoodlist();
 
         ArrayList<Double> totalsList = new ArrayList<Double>();
         totalsList.add(totalCarbs);
         totalsList.add(totalVolume);
         totalsList.add(totalWeight);
+        //Return the list of totals
         return totalsList;
     }
 
     public void updateRvFoodlist(){
+        //Update the RecyclerView of foods detected
         foodItems = new ArrayList<>();
         if (!foodsAndInfo.isEmpty()) {
-            int img_idx = 0;
             for (Map.Entry<String, List<Double>> entry : foodsAndInfo.entrySet()) {
+                //For each item, get its values and update the Recycler View
                 String foodName = entry.getKey();
                 List<Double> counts = entry.getValue();
                 Double carbCount = counts.get(0);
@@ -425,65 +420,26 @@ public class AnalysisActivity extends AppCompatActivity {
                 String detectionImgPath = detectionImg.exists() ? detectionImg.getAbsolutePath() : null;
                 foodItems.add(new IndividualFoodItem(detectionImgPath, foodName, carbCount, estimatedWeight, estimatedVolume, confidence, true));
                 Log.d("UpdateRvFoodList", "Added food item: " + detectionImgPath);
-                img_idx += 1;
             }
         }
-        else {
+        else { //Alert the user that no foods were detected
             foodItems.add(new IndividualFoodItem(null, "No recognisable food items found. Please try capturing again!", 0.0, 0.0, 0.0, 0.0, false));
-        } //Reference:	@android:drawable/ic_menu_report_image
-
+        }
 
         foodAdapter = new FoodAdapter(foodItems);
 
-        // Register an AdapterDataObserver
+        // Register an AdapterDataObserver to listen for updates (user closing items)
         foodAdapter.registerAdapterDataObserver(new RecyclerView.AdapterDataObserver() {
             @Override
             public void onItemRangeRemoved(int positionStart, int itemCount) {
                 super.onItemRangeRemoved(positionStart, itemCount);
-                // This will be called when items are removed
+                // Called when items are removed
                 Log.d("RecyclerView", "Items removed from position " + positionStart + ", count: " + itemCount);
                 updateResultsSection(foodAdapter.getFoodItems());
-                // You can handle the removal here, like updating UI or performing any other actions
             }
         });
-
-
-
         rvFoodList.setAdapter(foodAdapter);
     }
 
-//    private void processTextFile(File textFile) {
-//        try {
-//            BufferedReader br = new BufferedReader(new FileReader(textFile));
-//            StringBuilder text = new StringBuilder();
-//            String line;
-//            while ((line = br.readLine()) != null) {
-//                text.append(line).append("\n");
-//            }
-//            br.close();
-//
-//            // Display extracted food data
-//            String extractedText = text.toString();
-//            Log.d("Food Data", extractedText);
-//            runOnUiThread(() -> textStatus.setText(extractedText));
-//
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
-//    }
-//
-//    private Bitmap rotateBitmap(Bitmap original, float degrees) {
-//        int width = original.getWidth();
-//        int height = original.getHeight();
-//
-//        Matrix matrix = new Matrix();
-//        matrix.preRotate(degrees);
-//
-//        Bitmap rotatedBitmap = Bitmap.createBitmap(original, 0, 0, width, height, matrix, true);
-//        Canvas canvas = new Canvas(rotatedBitmap);
-//        canvas.drawBitmap(original, 5.0f, 0.0f, null);
-//
-//        return rotatedBitmap;
-//    }
 }
 
