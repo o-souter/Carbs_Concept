@@ -2,7 +2,7 @@
 
 ## Overview
 The **CARBS Android App** is the CARBS Capture Tool. It allows individuals with Type 1 Diabetes to capture images of meals and automatically estimate carbohydrate content using AI-powered backend processing. It functions as one of two deliverables as part of my MSci Project. 
-View the CARBS Android Capture Tool app [here](https://github.com/o-souter/Carbs_Concept)
+View the CARBS Processing Server [here](https://github.com/o-souter/carbs-app-processing)
 
 
 
